@@ -1,6 +1,7 @@
 #include "m.h"
 
-/*int main(int argc, char** argv){
+int main(int argc, char** argv){
+    root = NULL;
     if (argc <= 1) return 1;
     FILE* f = fopen(argv[1], "r");
     if (!f)
@@ -10,22 +11,6 @@
     }
     yyrestart(f);
     yyparse();
-    return 0;
-}*/
-
-extern int yylex(void);
-int main(int argc, char **argv)
-{
-    extern FILE *yyin;
-    if (argc > 1)
-    {
-        if (!(yyin = fopen(argv[1], "r")))
-        {
-            perror(argv[1]);
-            return 1;
-        }
-    }
-    while (yylex() != 0)
-        ;
+    read_tree(root,0);
     return 0;
 }

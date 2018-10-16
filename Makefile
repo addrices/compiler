@@ -1,12 +1,9 @@
-parser:main.c lexical.l syntax.y
+all: lexical.l main.c m.h syntax.y
 	flex lexical.l
 	bison -d syntax.y
-	gcc main.c syntax.tab.c -lfl -ly -o parser
+	gcc main.c syntax.tab.c -lfl -ly -o parser -g
 
 clean:
-	rm lex.yy.c scanner
+	rm lex.yy.c parser syntax.tab.c syntax.tab.h
 	
-scanner:main.c lexical.l
-	flex lexical.l
-	gcc main.c lex.yy.c -lfl -o scanner
 	
