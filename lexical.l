@@ -111,5 +111,6 @@ ID {LETTER}{1,32}
 . {
     printf("Error type A at Line %d : Mysterious characters \'%s\'\n",
       yylineno, yytext);
+    ProFlag = false;
 }
 %%

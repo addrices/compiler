@@ -39,17 +39,19 @@
 %token OR LP RP LB RB LC RC STRUCT RETURN IF ELSE WHILE DOT
 
 %type <type_node> Program ExtDefList ExtDef ExtDecList Specifier StructSpecifier OptTag Tag VarDec FunDec VarList ParamDec CompSt StmtList Stmt DefList Def
-%type <type_node> DecList Dec Exp Args Int Float Relop Id Type Semi Assignop Comma Plus Minus Star Div
-%type <type_node> And Not Or Lp Rp Lb Rb Lc Rc Struct Return If Else While Dot Negate
+%type <type_node> DecList Dec Exp Args
 
-%right Assignop
-%left Or
-%left And
-%left Relop
-%left Add Minus
-%left Mul div
-%right Not Negate
-%left Lp Rp Lb Rb
+%right ASSIGNOP
+%left OR
+%left AND
+%left RELOP
+%left PLUS MINUS
+%left STAR DIV
+%right NOT
+%left LP RP LB RB DOT
+
+%nonassoc LOWER_THAN_ELSE
+%nonassoc ELSE
 
 %%
 Program : ExtDefList {
@@ -65,16 +67,18 @@ ExtDefList : ExtDef ExtDefList {
     }
     | /*empty*/{$$ = create_node("ExtDefList", @$.first_line, (union n_un)0, false);}
 
-ExtDef : Specifier ExtDecList Semi{
+ExtDef : Specifier ExtDecList SEMI{
         $$ = create_node("ExtDef", @$.first_line, (union n_un)0, false);
+        struct tree_node* NewNode = create_node("SEMI", @$.first_line, (union n_un)0, true);
         add_child($$, $1);
         add_sibling($1, $2);
-        add_sibling($2, $3);
+        add_sibling($2, NewNode);
     }
-    | Specifier Semi{
+    | Specifier SEMI{
         $$ = create_node("ExtDef", @$.first_line, (union n_un)0, false);
+        struct tree_node* NewNode = create_node("SEMI", @$.first_line, (union n_un)0, true);
         add_child($$, $1);
-        add_sibling($1, $2);
+        add_sibling($1, NewNode);
     }
     | Specifier FunDec CompSt{
         $$ = create_node("ExtDef", @$.first_line, (union n_un)0, false);
@@ -87,76 +91,98 @@ ExtDecList : VarDec{
         $$ = create_node("ExtDecList", @$.first_line, (union n_un)0, false);
         add_child($$, $1);
     }
-    | VarDec Comma ExtDecList{
+    | VarDec COMMA ExtDecList{
         $$ = create_node("ExtDecList", @$.first_line, (union n_un)0, false);
+        struct tree_node* NewNode = create_node("COMMA", @$.first_line, (union n_un)0, true);
         add_child($$, $1);
-        add_sibling($1, $2);
-        add_sibling($2, $3);
+        add_sibling($1, NewNode);
+        add_sibling(NewNode, $3);
     }
 
-Specifier : Type {
+Specifier : TYPE {
         $$ = create_node("Specifier", @$.first_line, (union n_un)0, false);
-        add_child($$, $1);
+        struct tree_node* NewNode = create_node("TYPE", @$.first_line, (union n_un)$1, true);
+        add_child($$, NewNode);
     }
     | StructSpecifier{
         $$ = create_node("Specifier", @$.first_line, (union n_un)0, false);
         add_child($$, $1);
     }
 
-StructSpecifier : Struct OptTag Lc DefList Rc{
+StructSpecifier : STRUCT OptTag LC DefList RC{
         $$ = create_node("StructSpecifier", @$.first_line, (union n_un)0, false);
-        add_child($$, $1);
-        add_sibling($1, $2);
-        add_sibling($2, $3);
-        add_sibling($3, $4);
-        add_sibling($4, $5);
+        struct tree_node* NewNode = create_node("STRUCT", @$.first_line, (union n_un)0, true);
+        struct tree_node* NewNode2 = create_node("LC", @$.first_line, (union n_un)0, true);
+        struct tree_node* NewNode3 = create_node("RC", @$.first_line, (union n_un)0, true);
+        add_child($$, NewNode);
+        add_sibling(NewNode, $2);
+        add_sibling($2, NewNode2);
+        add_sibling(NewNode2, $4);
+        add_sibling($4, NewNode3);
     }
-    | Struct Tag {
+    | STRUCT Tag {
         $$ = create_node("StructSpecifier", @$.first_line, (union n_un)0, false);
-        add_child($$, $1);
-        add_sibling($1, $2);
+        struct tree_node* NewNode = create_node("STRUCT", @$.first_line, (union n_un)0, true);
+        add_child($$, NewNode);
+        add_sibling(NewNode, $2);
     }
 
-OptTag : Id{
+OptTag : ID{
         $$ = create_node("OptTag", @$.first_line, (union n_un)0, false);
-        add_child($$, $1);
+        struct tree_node* NewNode = create_node("ID", @$.first_line, (union n_un)$1, true);
+        add_child($$, NewNode);
     }
     | /*empty*/{$$ = create_node("OptTag", @$.first_line, (union n_un)0, false);}
 
-Tag : Id{
+Tag : ID{
         $$ = create_node("Tag", @$.first_line, (union n_un)0, false);
-        add_child($$, $1);
+        struct tree_node* NewNode = create_node("ID", @$.first_line, (union n_un)$1, true);
+        add_child($$, NewNode);
     }
 
-VarDec : Id
-    | VarDec Lb Int Rb{
+VarDec : ID {
         $$ = create_node("VarDec", @$.first_line, (union n_un)0, false);
+        struct tree_node* NewNode = create_node("ID", @$.first_line, (union n_un)$1, true);
+        add_child($$, NewNode);
+    }
+    | VarDec LB INT RB{
+        $$ = create_node("VarDec", @$.first_line, (union n_un)0, false);
+        struct tree_node* NewNode = create_node("LB", @$.first_line, (union n_un)0, true);
+        struct tree_node* NewNode2 = create_node("INT", @$.first_line, (union n_un)$3, true);
+        struct tree_node* NewNode3 = create_node("RB", @$.first_line, (union n_un)0, true);
         add_child($$, $1);
-        add_sibling($1, $2);
-        add_sibling($2, $3);
-        add_sibling($3, $4);
+        add_sibling($1, NewNode);
+        add_sibling(NewNode, NewNode2);
+        add_sibling(NewNode2, NewNode3);
     }
 
-FunDec : Id Lp VarList Rp{
+FunDec : ID LP VarList RP{
         $$ = create_node("FunDec", @$.first_line, (union n_un)0, false);
-        add_child($$, $1);
-        add_sibling($1, $2);
-        add_sibling($2, $3);
-        add_sibling($3, $4);
+        struct tree_node* NewNode = create_node("ID", @$.first_line, (union n_un)$1, true);
+        struct tree_node* NewNode2 = create_node("LP", @$.first_line, (union n_un)0, true);
+        struct tree_node* NewNode3 = create_node("RP", @$.first_line, (union n_un)0, true);
+        add_child($$, NewNode);
+        add_sibling(NewNode, NewNode2);
+        add_sibling(NewNode2, $3);
+        add_sibling($3, NewNode3);
 
     }
-    | Id Lp Rp{
+    | ID LP RP{
         $$ = create_node("FunDec", @$.first_line, (union n_un)0, false);
-        add_child($$, $1);
-        add_sibling($1, $2);
-        add_sibling($2, $3);
+        struct tree_node* NewNode = create_node("ID", @$.first_line, (union n_un)$1, true);
+        struct tree_node* NewNode2 = create_node("LP", @$.first_line, (union n_un)0, true);
+        struct tree_node* NewNode3 = create_node("RP", @$.first_line, (union n_un)0, true);
+        add_child($$, NewNode);
+        add_sibling(NewNode, NewNode2);
+        add_sibling(NewNode2, NewNode3);
     }
 
-VarList : ParamDec Comma VarList{
+VarList : ParamDec COMMA VarList{
         $$ = create_node("VarList", @$.first_line, (union n_un)0, false);
+        struct tree_node* NewNode = create_node("COMMA", @$.first_line, (union n_un)0, true);
         add_child($$, $1);
-        add_sibling($1, $2);
-        add_sibling($2, $3);
+        add_sibling($1, NewNode);
+        add_sibling(NewNode, $3);
     }
     | ParamDec{
         $$ = create_node("VarList", @$.first_line, (union n_un)0, false);
@@ -170,12 +196,14 @@ ParamDec : Specifier VarDec{
         add_sibling($1, $2);
     }
 
-CompSt : Lc DefList StmtList Rc{
+CompSt : LC DefList StmtList RC{
         $$ = create_node("CompSt", @$.first_line, (union n_un)0, false);
-        add_child($$, $1);
-        add_sibling($1, $2);
+        struct tree_node* NewNode = create_node("LC", @$.first_line, (union n_un)0, true);
+        struct tree_node* NewNode2 = create_node("RC", @$.first_line, (union n_un)0, true);
+        add_child($$, NewNode);
+        add_sibling(NewNode, $2);
         add_sibling($2, $3);
-        add_sibling($3, $4);
+        add_sibling($3, NewNode2);
     }
 
 StmtList : Stmt StmtList{
@@ -185,46 +213,59 @@ StmtList : Stmt StmtList{
     }
     | /*empty*/{$$ = create_node("StmtList", @$.first_line, (union n_un)0, false);}
 
-Stmt : Exp Semi{
+Stmt : Exp SEMI{
         $$ = create_node("Stmt", @$.first_line, (union n_un)0, false);
+        struct tree_node* NewNode = create_node("SEMI", @$.first_line, (union n_un)0, true);
         add_child($$, $1);
-        add_sibling($1, $2);
+        add_sibling($1, NewNode);
     }
     | CompSt{
         $$ = create_node("Stmt", @$.first_line, (union n_un)0, false);
         add_child($$, $1);
     }
-    | Return Exp Semi{
+    | RETURN Exp SEMI{
         $$ = create_node("Stmt", @$.first_line, (union n_un)0, false);
-        add_child($$, $1);
-        add_sibling($1, $2);
-        add_sibling($2, $3);
+        struct tree_node* NewNode = create_node("RETURN", @$.first_line, (union n_un)0, true);
+        struct tree_node* NewNode2 = create_node("SEMI", @$.first_line, (union n_un)0, true);
+        add_child($$, NewNode);
+        add_sibling(NewNode, $2);
+        add_sibling($2, NewNode2);
     }
-    | If Lp Exp Rp Stmt{
+    | IF LP Exp RP Stmt {
         $$ = create_node("Stmt", @$.first_line, (union n_un)0, false);
-        add_child($$, $1);
-        add_sibling($1, $2);
-        add_sibling($2, $3);
-        add_sibling($3, $4);
-        add_sibling($4, $5);
+        struct tree_node* NewNode = create_node("IF", @$.first_line, (union n_un)0, true);
+        struct tree_node* NewNode2 = create_node("LP", @$.first_line, (union n_un)0, true);
+        struct tree_node* NewNode3 = create_node("RP", @$.first_line, (union n_un)0, true);
+        add_child($$, NewNode);
+        add_sibling(NewNode, NewNode2);
+        add_sibling(NewNode2, $3);
+        add_sibling($3, NewNode3);
+        add_sibling(NewNode3, $5);
+    } %prec LOWER_THAN_ELSE
+    | IF LP Exp RP Stmt ELSE Stmt{
+        $$ = create_node("Stmt", @$.first_line, (union n_un)0, false);
+        struct tree_node* NewNode = create_node("IF", @$.first_line, (union n_un)0, true);
+        struct tree_node* NewNode2 = create_node("LP", @$.first_line, (union n_un)0, true);
+        struct tree_node* NewNode3 = create_node("RP", @$.first_line, (union n_un)0, true);
+        struct tree_node* NewNode4 = create_node("ELSE", @$.first_line, (union n_un)0, true);
+        add_child($$, NewNode);
+        add_sibling(NewNode, NewNode2);
+        add_sibling(NewNode2, $3);
+        add_sibling($3, NewNode3);
+        add_sibling(NewNode3, $5);
+        add_sibling($5, NewNode4);
+        add_sibling(NewNode4, $7);
     }
-    | If Lp Exp Rp Stmt Else Stmt{
+    | WHILE LP Exp RP Stmt{
         $$ = create_node("Stmt", @$.first_line, (union n_un)0, false);
-        add_child($$, $1);
-        add_sibling($1, $2);
-        add_sibling($2, $3);
-        add_sibling($3, $4);
-        add_sibling($4, $5);
-        add_sibling($5, $6);
-        add_sibling($6, $7);
-    }
-    | While Lp Exp Rp Stmt{
-        $$ = create_node("Stmt", @$.first_line, (union n_un)0, false);
-        add_child($$, $1);
-        add_sibling($1, $2);
-        add_sibling($2, $3);
-        add_sibling($3, $4);
-        add_sibling($4, $5);
+        struct tree_node* NewNode = create_node("WHILE", @$.first_line, (union n_un)0, true);
+        struct tree_node* NewNode2 = create_node("LP", @$.first_line, (union n_un)0, true);
+        struct tree_node* NewNode3 = create_node("RP", @$.first_line, (union n_un)0, true);
+        add_child($$, NewNode);
+        add_sibling(NewNode, NewNode2);
+        add_sibling(NewNode2, $3);
+        add_sibling($3, NewNode3);
+        add_sibling(NewNode3, $5);
     }
 
 DefList : Def DefList{
@@ -234,183 +275,184 @@ DefList : Def DefList{
     }
     | /*empty*/{$$ = create_node("DefList", @$.first_line, (union n_un)0, false);}
 
-Def : Specifier DecList Semi{
+Def : Specifier DecList SEMI{
         $$ = create_node("Def", @$.first_line, (union n_un)0, false);
+        struct tree_node* NewNode = create_node("SEMI", @$.first_line, (union n_un)0, true);
         add_child($$, $1);
         add_sibling($1, $2);
-        add_sibling($2, $3);
+        add_sibling($2, NewNode);
     }
 
 DecList : Dec{
         $$ = create_node("DecList", @$.first_line, (union n_un)0, false);
         add_child($$, $1);
     }
-    | Dec Comma DecList{
+    | Dec COMMA DecList{
         $$ = create_node("DecList", @$.first_line, (union n_un)0, false);
+        struct tree_node* NewNode = create_node("COMMA", @$.first_line, (union n_un)0, true);
         add_child($$, $1);
-        add_sibling($1, $2);
-        add_sibling($2, $3);
+        add_sibling($1, NewNode);
+        add_sibling(NewNode, $3);
     }
 
 Dec : VarDec{
         $$ = create_node("Dec", @$.first_line, (union n_un)0, false);
         add_child($$, $1);
     }
-    |VarDec Assignop Exp{
+    |VarDec ASSIGNOP Exp{
         $$ = create_node("Dec", @$.first_line, (union n_un)0, false);
+        struct tree_node* NewNode = create_node("ASSIGNOP", @$.first_line, (union n_un)0, true);
         add_child($$, $1);
-        add_sibling($1, $2);
-        add_sibling($2, $3);
+        add_sibling($1, NewNode);
+        add_sibling(NewNode, $3);
     }
 
-Exp : Exp Assignop Exp{
+Exp : Exp ASSIGNOP Exp{
         $$ = create_node("Exp", @$.first_line, (union n_un)0, false);
+        struct tree_node* NewNode = create_node("ASSIGNOP", @$.first_line, (union n_un)0, true);
         add_child($$, $1);
-        add_sibling($1, $2);
-        add_sibling($2, $3);
+        add_sibling($1, NewNode);
+        add_sibling(NewNode, $3);
     }
-    | Exp And Exp{
-        $$ = create_node("Exp", @$.first_line, (union n_un)0, false);
+    | Exp AND Exp{
+        $$ = create_node("Exp", @$.first_line, (union n_un)0, false); 
+        struct tree_node* NewNode = create_node("AND", @$.first_line, (union n_un)0, true);
         add_child($$, $1);
-        add_sibling($1, $2);
-        add_sibling($2, $3);
+        add_sibling($1, NewNode);
+        add_sibling(NewNode, $3);
     }
-    | Exp Or Exp{
+    | Exp OR Exp{
         $$ = create_node("Exp", @$.first_line, (union n_un)0, false);
+        struct tree_node* NewNode = create_node("OR", @$.first_line, (union n_un)0, true);
         add_child($$, $1);
-        add_sibling($1, $2);
-        add_sibling($2, $3);
+        add_sibling($1, NewNode);
+        add_sibling(NewNode, $3);
     }
-    | Exp Relop Exp{
+    | Exp RELOP Exp{
         $$ = create_node("Exp", @$.first_line, (union n_un)0, false);
+        struct tree_node* NewNode = create_node("RELOP", @$.first_line, (union n_un)$2, true);
         add_child($$, $1);
-        add_sibling($1, $2);
-        add_sibling($2, $3);
+        add_sibling($1, NewNode);
+        add_sibling(NewNode, $3);
     }
-    | Exp Plus Exp{
+    | Exp PLUS Exp{
         $$ = create_node("Exp", @$.first_line, (union n_un)0, false);
+        struct tree_node* NewNode = create_node("PLUS", @$.first_line, (union n_un)0, true);
         add_child($$, $1);
-        add_sibling($1, $2);
-        add_sibling($2, $3);
+        add_sibling($1, NewNode);
+        add_sibling(NewNode, $3);
     }
-    | Exp Minus Exp{
+    | Exp MINUS Exp{
         $$ = create_node("Exp", @$.first_line, (union n_un)0, false);
+        struct tree_node* NewNode = create_node("MINUS", @$.first_line, (union n_un)0, true);
         add_child($$, $1);
-        add_sibling($1, $2);
-        add_sibling($2, $3);
+        add_sibling($1, NewNode);
+        add_sibling(NewNode, $3);
     }
-    | Exp Star Exp{
+    | Exp STAR Exp{
         $$ = create_node("Exp", @$.first_line, (union n_un)0, false);
+        struct tree_node* NewNode = create_node("STAR", @$.first_line, (union n_un)0, true);
         add_child($$, $1);
-        add_sibling($1, $2);
-        add_sibling($2, $3);
+        add_sibling($1, NewNode);
+        add_sibling(NewNode, $3);
     }
-    | Exp Div Exp{
+    | Exp DIV Exp{
         $$ = create_node("Exp", @$.first_line, (union n_un)0, false);
+        struct tree_node* NewNode = create_node("DIV", @$.first_line, (union n_un)0, true);
         add_child($$, $1);
-        add_sibling($1, $2);
-        add_sibling($2, $3);
+        add_sibling($1, NewNode);
+        add_sibling(NewNode, $3);
     }
-    | Lp Exp Rp{
+    | LP Exp RP{
         $$ = create_node("Exp", @$.first_line, (union n_un)0, false);
-        add_child($$, $1);
-        add_sibling($1, $2);
-        add_sibling($2, $3);
+        struct tree_node* NewNode = create_node("LP", @$.first_line, (union n_un)0, true);
+        struct tree_node* NewNode2 = create_node("RP", @$.first_line, (union n_un)0, true);
+        add_child($$, NewNode);
+        add_sibling(NewNode, $2);
+        add_sibling($2, NewNode2);
     }
-    | Negate Exp {
+    | NOT Exp {
         $$ = create_node("Exp", @$.first_line, (union n_un)0, false);
-        add_child($$, $1);
-        add_sibling($1, $2);
+        struct tree_node* NewNode = create_node("NOT", @$.first_line, (union n_un)0, true);
+        add_child($$, NewNode);
+        add_sibling(NewNode, $2);
     }
-    | Not Exp {
+    | MINUS Exp {
         $$ = create_node("Exp", @$.first_line, (union n_un)0, false);
-        add_child($$, $1);
-        add_sibling($1, $2);
+        struct tree_node* NewNode = create_node("MINUS", @$.first_line, (union n_un)0, true);
+        add_child($$, NewNode);
+        add_sibling(NewNode, $2);
     }
-    | Id Lp Args Rp{
+    | ID LP Args RP{
         $$ = create_node("Exp", @$.first_line, (union n_un)0, false);
-        add_child($$, $1);
-        add_sibling($1, $2);
-        add_sibling($2, $3);
-        add_sibling($3, $4);
+        struct tree_node* NewNode = create_node("ID", @$.first_line, (union n_un)$1, true);
+        struct tree_node* NewNode2 = create_node("LP", @$.first_line, (union n_un)0, true);
+        struct tree_node* NewNode3 = create_node("RP", @$.first_line, (union n_un)0, true);
+        add_child($$, NewNode);
+        add_sibling(NewNode, NewNode2);
+        add_sibling(NewNode2, $3);
+        add_sibling($3, NewNode3);
 
     }
-    | Id Lp Rp{
+    | ID LP RP{
         $$ = create_node("Exp", @$.first_line, (union n_un)0, false);
-        add_child($$, $1);
-        add_sibling($1, $2);
-        add_sibling($2, $3);
+        struct tree_node* NewNode = create_node("ID", @$.first_line, (union n_un)$1, true);
+        struct tree_node* NewNode2 = create_node("LP", @$.first_line, (union n_un)0, true);
+        struct tree_node* NewNode3 = create_node("RP", @$.first_line, (union n_un)0, true);
+        add_child($$, NewNode);
+        add_sibling(NewNode, NewNode2);
+        add_sibling(NewNode2, NewNode3);
     }
-    | Exp Lb Exp Rb{
+    | Exp LB Exp RB{
         $$ = create_node("Exp", @$.first_line, (union n_un)0, false);
         add_child($$, $1);
-        add_sibling($1, $2);
-        add_sibling($2, $3);
-        add_sibling($3, $4);
+        struct tree_node* NewNode = create_node("LB", @$.first_line, (union n_un)0, true);
+        struct tree_node* NewNode2 = create_node("RB", @$.first_line, (union n_un)0, true);
+        add_sibling($1, NewNode);
+        add_sibling(NewNode, $3);
+        add_sibling($3, NewNode2);
     }
-    | Exp Dot Id{
+    | Exp DOT ID{
         $$ = create_node("Exp", @$.first_line, (union n_un)0, false);
         add_child($$, $1);
-        add_sibling($1, $2);
-        add_sibling($2, $3);
+        struct tree_node* NewNode = create_node("DOT", @$.first_line, (union n_un)0, true);
+        struct tree_node* NewNode2 = create_node("ID", @$.first_line, (union n_un)$3, true);
+        add_sibling($1, NewNode);
+        add_sibling(NewNode, NewNode2);
     }
-    | Id{
+    | ID{
         $$ = create_node("Exp", @$.first_line, (union n_un)0, false);
-        add_child($$, $1);
+        struct tree_node* NewNode = create_node("ID", @$.first_line, (union n_un)$1, true);
+        add_child($$, NewNode);
     }
-    | Int{
+    | INT{
         $$ = create_node("Exp", @$.first_line, (union n_un)0, false);
-        add_child($$, $1);
+        struct tree_node* NewNode = create_node("INT", @$.first_line, (union n_un)$1, true);
+        add_child($$, NewNode);
     }
-    | Float{
+    | FLOAT{
         $$ = create_node("Exp", @$.first_line, (union n_un)0, false);
-        add_child($$, $1);
+        struct tree_node* NewNode = create_node("FLOAT", @$.first_line, (union n_un)$1, true);
+        add_child($$, NewNode);
     }
 
-Args : Exp Comma Args{
+Args : Exp COMMA Args{
         $$ = create_node("Args", @$.first_line, (union n_un)0, false);
         add_child($$, $1);
-        add_sibling($1, $2);
-        add_sibling($2, $3);
+        struct tree_node* NewNode = create_node("COMMA", @$.first_line, (union n_un)0, true);
+        add_sibling($1, NewNode);
+        add_sibling(NewNode, $3);
     }
     | Exp {
         $$ = create_node("Args", @$.first_line, (union n_un)0, false);
         add_child($$, $1);
     }
 
-Int : INT{ $$ = create_node("Int", @$.first_line, (union n_un)$1, true);}
-Float : FLOAT { $$ = create_node("Float", @$.first_line, (union n_un)$1, true);}
-Relop : RELOP { $$ = create_node("Relop", @$.first_line, (union n_un)$1, true);}
-Id : ID{ $$ = create_node("Id", @$.first_line, (union n_un)$1, true);}
-Type : TYPE { $$ = create_node("Type", @$.first_line, (union n_un)$1, true);}
-Semi : SEMI { $$ = create_node("Semi", @$.first_line, (union n_un)0, true);}
-Assignop : ASSIGNOP { $$ = create_node("Assignop", @$.first_line, (union n_un)0, true);}
-Comma : COMMA { $$ = create_node("Comma", @$.first_line, (union n_un)0, true);}
-Plus : PLUS { $$ = create_node("Plus", @$.first_line, (union n_un)0, true);}
-Minus : MINUS { $$ = create_node("Minus", @$.first_line, (union n_un)0, true);}
-Not : NOT { $$ = create_node("Not", @$.first_line, (union n_un)0, true);}
-Star : STAR { $$ = create_node("Star", @$.first_line, (union n_un)0, true);}
-Div : DIV { $$ = create_node("Div", @$.first_line, (union n_un)0, true);}
-And : AND { $$ = create_node("And", @$.first_line, (union n_un)0, true);}
-Or : OR { $$ = create_node("Or", @$.first_line, (union n_un)0, true);}
-Lp : LP { $$ = create_node("Lp", @$.first_line, (union n_un)0, true);}
-Rp : RP { $$ = create_node("Rp", @$.first_line, (union n_un)0, true);}
-Lb : LB { $$ = create_node("LB", @$.first_line, (union n_un)0, true);}
-Rb : RB { $$ = create_node("Rb", @$.first_line, (union n_un)0, true);}
-Lc : LC { $$ = create_node("Lc", @$.first_line, (union n_un)0, true);}
-Rc : RC { $$ = create_node("Rc", @$.first_line, (union n_un)0, true);}
-Struct : STRUCT { $$ = create_node("Struct", @$.first_line, (union n_un)0, true);}
-Return : RETURN { $$ = create_node("Return", @$.first_line, (union n_un)0, true);}
-If : IF { $$ = create_node("If", @$.first_line, (union n_un)0, true);}
-Else : ELSE { $$ = create_node("Else", @$.first_line, (union n_un)0, true);}
-While : WHILE { $$ = create_node("While", @$.first_line, (union n_un)0, true);}
-Dot : DOT {$$ = create_node("Dot", @$.first_line, (union n_un)0, true);}
-Negate : MINUS { $$ = create_node("Negate", @$.first_line, (union n_un)0, true);}
-
 %%
 #include "lex.yy.c"
 int yyerror(char* msg) {
-    fprintf(stderr, "Error type B at Line %d: %s\n", yylineno, msg);
+    ProFlag = false;
+    printf("Error type B at Line %d: %s\n", yylineno, msg);
 }
 
 struct tree_node* create_node(char* a, int length, union n_un value, bool flag){
@@ -441,29 +483,29 @@ void read_tree(struct tree_node* root_node,int i){
         goto A;
     for(int k = 0; k < i; k++)
         printf("  ");
-    if(strcmp(root_node->n_type,"Int") == 0)
-        printf("Int: %d \n", root_node->n_value.n_value_i);
-    else if(strcmp(root_node->n_type,"Float") == 0)
-        printf("Float: %f \n", root_node->n_value.n_value_f);
-    else if(strcmp(root_node->n_type,"Relop") == 0){
+    if(strcmp(root_node->n_type,"INT") == 0)
+        printf("INT: %d \n", root_node->n_value.n_value_i);
+    else if(strcmp(root_node->n_type,"FLOAT") == 0)
+        printf("FLOAT: %f \n", root_node->n_value.n_value_f);
+    else if(strcmp(root_node->n_type,"RELOP") == 0){
         if(root_node->n_value.n_value_i == 1)
-            printf("Relop: <\n");
+            printf("RELOP: <\n");
         if(root_node->n_value.n_value_i == 2)
-            printf("Relop: >\n");
+            printf("RELOP: >\n");
         if(root_node->n_value.n_value_i == 3)
-            printf("Relop: ==\n");
+            printf("RELOP: ==\n");
         if(root_node->n_value.n_value_i == 4)
-            printf("Relop: <=\n");
+            printf("RELOP: <=\n");
         if(root_node->n_value.n_value_i == 5)
-            printf("Relop: >=\n");
+            printf("RELOP: >=\n");
         if(root_node->n_value.n_value_i == 6)
-            printf("Relop: !=\n");
+            printf("RELOP: !=\n");
     }
-    else if(strcmp(root_node->n_type, "Id") == 0){
-        printf("Id: %s\n", root_node->n_value.a);
+    else if(strcmp(root_node->n_type, "ID") == 0){
+        printf("ID: %s\n", root_node->n_value.a);
     }
-    else if(strcmp(root_node->n_type, "Type") == 0){
-        printf("Type: %s\n", root_node->n_value.a);
+    else if(strcmp(root_node->n_type, "TYPE") == 0){
+        printf("TYPE: %s\n", root_node->n_value.a);
     }
     else if(root_node->if_lex == true)
         printf("%s \n", root_node->n_type);
