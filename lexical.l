@@ -13,7 +13,7 @@
 DIGIT [0-9]
 LETTER [_a-zA-Z]
 INT {DIGIT}+
-FLOAT {DIGIT}+[.]{DIGIT}+
+FLOAT {DIGIT}+[.]{DIGIT}+|{DIGIT}+[.]|[.]{DIGIT}+
 SPACE [ \t]
 SEMI [;]
 COMMA [,]
@@ -21,6 +21,7 @@ ASSIGNOP [=]
 RELOP >|<|>=|<=|==|!=
 PLUS [\+]
 MINUS [-]
+NOT [!]
 STAR [\*]
 DIV [/]
 AND &&
@@ -41,7 +42,25 @@ WHILE while
 ID {LETTER}{1,32}
 %%
 {INT}   { yylval.type_int = atoi(yytext); return INT;}
-{FLOAT} { return FLOAT;}
+{FLOAT} { 
+        int i = 0;
+        float num = 0;
+        for(; yytext[i] != '.'; i++){
+            num = num * 10 + (yytext[i] - '0');
+        }
+        i++;
+        int a = 1;
+        float num_f = 0;
+        for(; yytext[i] != '\0'; i++,a++){
+            num_f = yytext[i] - '0';
+            for(int b = 0; b < a; b++){
+                num_f /= 10;
+            }
+            num += num_f;
+        }
+        yylval.type_float = num;
+        return FLOAT;
+    }
 {SEMI}  { return SEMI;}
 {RELOP} { 
     if(strcmp(yytext,"<") == 0)
@@ -66,6 +85,7 @@ ID {LETTER}{1,32}
 {DIV}   { return DIV;}
 {DOT} { return DOT;}
 {AND} { return AND;}
+{NOT} { return NOT;}
 {OR}  { return OR;}
 {TYPE} {
     yylval.type_id = (char*)malloc(32 * sizeof(char)); 
