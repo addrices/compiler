@@ -116,7 +116,7 @@ StructSpecifier : STRUCT OptTag LC DefList RC{
         struct tree_node* NewNode3 = create_node("RC", @$.first_line, (union n_un)0, true);
         add_child($$, NewNode);
         add_sibling(NewNode, $2);
-        add_sibling($2, NewNode2);
+        add_sibling($2, NewNode2);yytext
         add_sibling(NewNode2, $4);
         add_sibling($4, NewNode3);
     }
@@ -205,6 +205,7 @@ CompSt : LC DefList StmtList RC{
         add_sibling($2, $3);
         add_sibling($3, NewNode2);
     }
+    | error RC {yyerror("error Compst");} 
 
 StmtList : Stmt StmtList{
         $$ = create_node("StmtList", @$.first_line, (union n_un)0, false);
@@ -267,6 +268,7 @@ Stmt : Exp SEMI{
         add_sibling($3, NewNode3);
         add_sibling(NewNode3, $5);
     }
+    | error SEMI{yyerror("error Stmt");} 
 
 DefList : Def DefList{
         $$ = create_node("DefList", @$.first_line, (union n_un)0, false);
@@ -435,6 +437,7 @@ Exp : Exp ASSIGNOP Exp{
         struct tree_node* NewNode = create_node("FLOAT", @$.first_line, (union n_un)$1, true);
         add_child($$, NewNode);
     }
+    | error RP {yyerror("error exp");} 
 
 Args : Exp COMMA Args{
         $$ = create_node("Args", @$.first_line, (union n_un)0, false);

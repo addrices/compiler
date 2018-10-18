@@ -11,9 +11,14 @@
 %}
 %option yylineno
 DIGIT [0-9]
+DIGIT_16 [0-9a-fA-F]
+DIGIT_8 [0-7]
 LETTER [_a-zA-Z]
-INT {DIGIT}+
+INT [1-9]{DIGIT}*|0
+INT_16 0x[1-9a-fA-F]{DIGIT_16}*
+INT_8 0[1-7]{DIGIT_8}*
 FLOAT {DIGIT}+[.]{DIGIT}+|{DIGIT}+[.]|[.]{DIGIT}+
+FLOAT_S {FLOAT}e-?{INT}
 SPACE [ \t]
 SEMI [;]
 COMMA [,]
@@ -42,6 +47,25 @@ WHILE while
 ID {LETTER}{1,32}
 %%
 {INT}   { yylval.type_int = atoi(yytext); return INT;}
+{INT_8} { 
+        int num = 0;
+        for(int i = 1; yytext[i] != '\0';i++){
+            num = num * 8 + yytext[i] - '0';
+        }
+        yylval.type_int = num;
+        return INT;
+    }
+{INT_16} {
+        int num = 0;
+        for(int i = 2; yytext[i] != '\0';i++){
+            if(yytext[i] >= '0' && yytext[i] <= '9')
+                num = num * 16 + yytext[i] - '0';
+            else
+                num = num * 16 + yytext[i] - 'a' + 10;
+        }
+        yylval.type_int = num;
+        return INT;
+    }
 {FLOAT} { 
         int i = 0;
         float num = 0;
@@ -58,6 +82,39 @@ ID {LETTER}{1,32}
             }
             num += num_f;
         }
+        yylval.type_float = num;
+        return FLOAT;
+    }
+{FLOAT_S} {
+        int i = 0;
+        float num = 0;
+        for(; yytext[i] != '.'; i++){
+            num = num * 10 + (yytext[i] - '0');
+        }
+        i++;
+        int a = 1;
+        float num_f = 0;
+        for(; yytext[i] != 'e'; i++,a++){
+            num_f = yytext[i] - '0';
+            for(int b = 0; b < a; b++){
+                num_f /= 10;
+            }
+            num += num_f;
+        }
+        i++;
+        bool minus_flag = false;
+        if(yytext[i] == '-'){
+            minus_flag = true;
+            i++;
+        }
+        int index = atoi(yytext+i);
+        printf("index %d",index);
+        for(int q = 0; q < index; q++){
+            if(minus_flag == true)
+                num /= 10;
+            else
+                num *= 10;
+        } 
         yylval.type_float = num;
         return FLOAT;
     }
