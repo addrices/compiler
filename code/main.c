@@ -12,8 +12,10 @@ int main(int argc, char** argv){
     }
     yyrestart(f);
     yyparse();
+    #ifdef __LAB1_ENABLE
     if(ProFlag == true){
         read_tree(root,0);
     }
+    #endif
     return 0;
 }

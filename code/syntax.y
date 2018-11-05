@@ -1,26 +1,5 @@
 %{
     #include "m.h"
-
-    union n_un{
-        int n_value_i;
-        float n_value_f;
-        char* a;
-    };
-
-    struct tree_node{
-        struct tree_node* first_child;
-        struct tree_node* next_brother;
-        char n_type[32];
-        int n_length;
-        union n_un n_value;
-        bool if_lex;
-    };
-
-    int error_line;
-    struct tree_node* create_node(char* a, int length, union n_un value,bool flag);
-    void add_child(struct tree_node* a, struct tree_node* b);
-    void add_sibling(struct tree_node* a, struct tree_node* b);
-    void read_tree(struct tree_node* root_node,int i);
 %}
 %union {
     int type_int;
