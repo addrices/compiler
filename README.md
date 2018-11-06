@@ -12,6 +12,7 @@
 |name|函数名|
 |parameter_num|参数数量|
 |parameters|参数列表数组的头指针|
+
 parameters中按顺序保存着parameter_num个char类型的，a代表int，b代表float，c代表struct。
 
 ### 结构体表(不允许嵌套struct定义)
@@ -20,6 +21,7 @@ parameters中按顺序保存着parameter_num个char类型的，a代表int，b代
 |name|函数名|
 |member_num|成员数量|
 |members|成员列表数组的头指针|
+
 members中按顺序保存着member_num个struct_node类型变量，用于描述成员。
 
 struct_node类型变量

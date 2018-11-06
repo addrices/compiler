@@ -1,4 +1,4 @@
-all: lexical.l main.c m.h syntax.y
+all: lexical.l main.c m.h syntax.y semantic.c
 	flex lexical.l
 	bison -d syntax.y
 	gcc main.c syntax.tab.c -lfl -ly -o ../parser
