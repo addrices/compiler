@@ -3,8 +3,7 @@
 #include <stdbool.h>
 #define __LAB1_ENABLE
 #define __LAB2_ENABLE
-#define __MAX_NAME_LENGTH 16
-#define __MAX_FUNC_PNUM 7
+
 
 /*lab1 syntax.y*/
 union n_un{
@@ -28,23 +27,23 @@ void read_tree(struct tree_node* root_node,int i);
 
 /*lab2*/
 #ifdef __LAB2_ENABLE
+#define __MAX_NAME_LENGTH 16
+#define __MAX_FUNC_PNUM 7
+#define __FUNC_HASH_NUM 29
+
 struct func_node{
-    char name[__MAX_NAME_LENGTH];  //name
-    int parameter_num;//参数数量
-    char return_type;//int i float f struct s
-    char parameters[__MAX_FUNC_PNUM];//int i float f struct s array a
-    struct func_node *next;
-    struct func_node *pre;
-};
-struct struct_member_node{
     char name[__MAX_NAME_LENGTH];
-    char type; //int i float f struct s array a
-    struct array_node* array;
+    struct func_node* next;
+    char return_type;//int i float f struct s
+    struct struct_node* re_struct;//if struct point it, if not it's NULL
+    int parameter_num;
+    struct var_node **parameters;//point it's parameter's point
 };
 struct struct_node{
     char name[__MAX_NAME_LENGTH];
+    struct struct_node *next;
     int member_num;//成员数量
-    struct struct_member_node *members;//成员列表
+    struct var_node **members;
 };
 struct var_node{
     char name[__MAX_NAME_LENGTH];
@@ -54,10 +53,13 @@ struct var_node{
 };
 struct array_node{
     char type;//int i float f struct s array a
+    struct struct_node *struct_type;
     struct array_node* array;
 };
-struct func_node *func_begin;
-bool func_node_add(char *name, int parameter_num, char return_type,char *parameters);
+void analy_tree(struct tree_node* root_node);
+struct func_node* func_list[__FUNC_HASH_NUM];
+void func_node_add(struct func_node *current);
+struct func_node* func_node_search(char *name);
 #endif
 struct tree_node *root;
 void read_tree(struct tree_node* root_node,int i);

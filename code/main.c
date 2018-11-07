@@ -17,5 +17,8 @@ int main(int argc, char** argv){
         read_tree(root,0);
     }
     #endif
+    #ifdef __LAB2_ENABLE
+    analy_tree(root);
+    #endif
     return 0;
 }
