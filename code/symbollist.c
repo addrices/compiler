@@ -8,6 +8,10 @@ int hash(char *a){
     return b % __FUNC_HASH_NUM;
 }
 
+bool search_struct(struct struct_node* current, char *name){
+    return true;
+}
+
 void func_node_add(struct func_node *current){
     int num = hash(current->name);
     struct func_node *begin = func_list[num];
@@ -33,3 +37,4 @@ struct func_node* func_node_search(char *name){
     }
     return current;
 }
+

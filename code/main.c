@@ -18,7 +18,7 @@ int main(int argc, char** argv){
     }
     #endif
     #ifdef __LAB2_ENABLE
-    analy_tree(root);
+    analy_Program(root);
     #endif
     return 0;
 }

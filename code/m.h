@@ -1,8 +1,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <malloc.h>
+#include <assert.h>
 #define __LAB1_ENABLE
 #define __LAB2_ENABLE
+#define __DEBUG
 
 
 /*lab1 syntax.y*/
@@ -27,7 +30,7 @@ void read_tree(struct tree_node* root_node,int i);
 
 /*lab2*/
 #ifdef __LAB2_ENABLE
-#define __MAX_NAME_LENGTH 16
+#define __MAX_NAME_LENGTH 32
 #define __MAX_FUNC_PNUM 7
 #define __FUNC_HASH_NUM 29
 
@@ -56,7 +59,9 @@ struct array_node{
     struct struct_node *struct_type;
     struct array_node* array;
 };
-void analy_tree(struct tree_node* root_node);
+
+bool search_struct(struct struct_node* current, char *name);
+void analy_Program(struct tree_node* root_node);
 struct func_node* func_list[__FUNC_HASH_NUM];
 void func_node_add(struct func_node *current);
 struct func_node* func_node_search(char *name);
