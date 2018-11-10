@@ -2,14 +2,13 @@
 
 void analy_ExtDefList(struct tree_node* root);
 void analy_ExtDef(struct tree_node* root);
-void analy_FunDec(struct tree_node* root, struct func_node* current);
-void analy_VarList(struct tree_node* root, struct func_node* current);
-void analy_ParamDec(struct tree_node* root, struct var_node* current);
-void analy_Specifier(struct tree_node* root, struct var_node* current);
-struct struct_node* analy_StructSpecifier(struct tree_node* root);
-struct var_node* analy_Def(struct tree_node* root);
-struct var_node* analy_Def(struct tree_node* root);
+func_node* analy_FunDec(struct tree_node* root);
+func_plist* analy_VarList(struct tree_node* root);
+func_plist* analy_ParamDec(struct tree_node* root);
+type* analy_Specifier(struct tree_node* root);
+var_node* analy_VarDec(struct tree_node* root);
 
+//分析整个程序
 void analy_Program(struct tree_node* root_node){
 #ifdef __DEBUG
     printf("%s\n",root->n_type);
@@ -21,6 +20,7 @@ void analy_Program(struct tree_node* root_node){
     return;
 }
 
+//分析所有的大定义
 void analy_ExtDefList(struct tree_node* root){
 #ifdef __DEBUG
     printf("%s\n",root->n_type);
@@ -33,28 +33,33 @@ void analy_ExtDefList(struct tree_node* root){
     }
 }
 
+//分析一个大定义
 void analy_ExtDef(struct tree_node* root){
 #ifdef __DEBUG
     printf("%s\n",root->n_type);
 #endif
     if(strcmp(root->first_child->next_brother->n_type, "FunDec") == 0){
-        struct func_node *current = (struct func_node*)malloc(sizeof(struct func_node));
-        current->next = NULL;
-        //analy_Specifier
-        analy_FunDec(root->first_child->next_brother,current);
-        //analy_Compst
-        //add node
+        type* return_kind = analy_Specifier(root->first_child);
+        func_node* current = analy_FunDec(root->first_child->next_brother);
+        current->return_type = return_kind;
+        //add_node analy_FunDec
     }
-    else if(strcmp(root->first_child->next_brother->n_type, "SEMI") == 0)
+    else if(strcmp(root->first_child->next_brother->n_type, "SEMI") == 0){
+        //add
+    }
         printf("struct def");
     return;
 }
 
-//函数的定义处理
-void analy_FunDec(struct tree_node* root, struct func_node* current){
+/*函数的定义处理
+    ID LP VarList RP
+|   ID LP RP
+*/
+func_node* analy_FunDec(struct tree_node* root){
 #ifdef __DEBUG
     printf("%s\n",root->n_type);
-#endif    
+#endif
+    func_node* current = (func_node*)malloc(sizeof(func_node));
     if(strlen(root->first_child->n_type) < __MAX_NAME_LENGTH)
         strcpy(current->name,root->first_child->n_type);
     else{
@@ -62,73 +67,63 @@ void analy_FunDec(struct tree_node* root, struct func_node* current){
         assert(0);
     }
     if(strcmp(root->first_child->next_brother->next_brother->n_type,"VarList") == 0){
-        current->parameter_num = 0;
-        analy_VarList(root->first_child->next_brother->next_brother,current);
+        current->list = analy_VarList(root->first_child->next_brother->next_brother);
     }
     else{
-        current->parameter_num = 0;
-        current->parameters = NULL;
+        current->list = NULL;
     }
-    return;
+    return current;
 }
 
-//用于根据varList给func_node添加节点，这里写的不好，这个函数是给上游的func用的，不能复用
-//，但因为也就func用他所以没关系，有空再重写把 ^.^
-void analy_VarList(struct tree_node* root, struct func_node* current){
+/*用于根据varList给func_node添加节点 ^.^ (整合func_plist表给func_node)
+    ParamDec COMMA VarList
+|   ParamDec
+*/
+func_plist* analy_VarList(struct tree_node* root){
 #ifdef __DEBUG
     printf("%s\n",root->n_type);
 #endif
-    int p_num = 1;
-    struct tree_node* p = root;
-    while(p->first_child->next_brother != NULL){
-        p_num++;
-        p = p->first_child->next_brother->next_brother;
-    }
-    printf("p_num %d\n",p_num);
-    current->parameter_num = p_num;
-    current->parameters = (struct var_node**)malloc(sizeof(struct var_node*) * p_num);
-    p = root->first_child;
-    for(int i = 0; i < p_num ;i++){
-        current->parameters[i] = (struct var_node*)malloc(sizeof(struct var_node));
-        analy_ParamDec(p,current->parameters[i]);
-        if(i != p_num - 1)
-            p = p->next_brother->next_brother->first_child;
-    }
-    return; 
-}
-
-//产生变量，加入变量表 >.<
-void analy_ParamDec(struct tree_node* root, struct var_node* current){
-#ifdef __DEBUG
-    printf("%s\n",root->n_type);
-#endif
-    analy_Specifier(root->first_child, current);
-    //analy_VarDec(root->first_child->next_brother);
-    //add to varlist;
-    return;
-}
-
-//分析变量的类型，如果是struct加入结构体表中 》—《
-void analy_Specifier(struct tree_node* root, struct var_node* current){
-#ifdef __DEBUG
-    printf("%s\n",root->n_type);
-    printf("%s\n",root->first_child->n_type);
-#endif
-    if(strcmp(root->first_child->n_type,"TYPE") == 0){
-        struct tree_node* TYPE = root->first_child;
-        printf("TYPE %s\n",TYPE->n_value.a);
-        current->type = TYPE->n_value.a[0];
-        current->array = NULL;
-        current->struct_type = NULL;
+    if(root->first_child->next_brother == NULL){ //only ParamDec
+        return analy_ParamDec(root->first_child);
     }
     else{
-        current->type = 's';
-        current->array = NULL;
-        current->struct_type = analy_StructSpecifier(root->first_child);
+        func_plist* current = analy_ParamDec(root->first_child);
+        current->next = analy_VarList(root->first_child->next_brother->next_brother);
+        return current;
     }
-    return;
 }
 
+// 将类型交给 VarDec 获得VarDec产生的变量指针整合成func_plist结点后return
+// 并将产生的参数变量加入var_list中
+// Specifier VarDec
+func_plist* analy_ParamDec(struct tree_node* root){
+#ifdef __DEBUG
+    printf("%s\n",root->n_type);
+#endif
+    type* type_node = analy_Specifier(root->first_child);
+    var_node* var = analy_VarDec(root->first_child->next_brother);
+    func_plist* current = (func_plist*)malloc(sizeof(struct func_plist_));
+    current->next = NULL;
+    return current;
+}
+
+//分析产生的Specififer并将对应的type指针返回 
+type* analy_Specifier(struct tree_node* root){
+#ifdef __DEBUG
+    printf("%s\n",root->n_type);
+#endif
+    type* current = NULL;
+    return current;
+}
+
+var_node* analy_VarDec(struct tree_node* root){
+#ifdef __DEBUG
+    printf("%s\n",root->n_type);
+#endif
+    var_node* current = NULL;
+    return current;
+}
+/*
 //structspecifier中有定义和引用
 //struct tag是引用 STRUCT OptTag LC DefList RC中有定义的行为
 //用返回值的形式好像好一点 ？.？ 返回定义在结构体表中的指针
@@ -146,7 +141,7 @@ struct struct_node* analy_StructSpecifier(struct tree_node* root){
         else{
             //error!!!;
             assert(0);
-        }*/
+        }
     }
     else{
         //create a struct node;
@@ -163,18 +158,20 @@ struct struct_node* analy_StructSpecifier(struct tree_node* root){
             p = p->first_child->next_brother;
             def_num++;
         }
-        if(def_num == 0)
+        if(def_num == 0){
             current->members = NULL;
+            return;
+        }
         else
             current->members = (struct var_node**)malloc(sizeof(struct var_node*) * def_num);
         p = DefList;
         for(int i = 0; i < def_num;i++){
-            current->members[i] = analy_Def(p->first_child);
+            //current->members[i] = analy_Def(p->first_child);
             p = p->first_child->next_brother;
         }
     }
 }
 
 struct var_node* analy_Def(struct tree_node* root){
-    return NULL;
-}
+    
+}*/

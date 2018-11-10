@@ -303,7 +303,7 @@ Dec : VarDec{
         $$ = create_node("Dec", @$.first_line, (union n_un)0, false);
         add_child($$, $1);
     }
-    |VarDec ASSIGNOP Exp{
+    | VarDec ASSIGNOP Exp{
         $$ = create_node("Dec", @$.first_line, (union n_un)0, false);
         struct tree_node* NewNode = create_node("ASSIGNOP", @$.first_line, (union n_un)0, true);
         add_child($$, $1);

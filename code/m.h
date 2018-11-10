@@ -33,38 +33,52 @@ void read_tree(struct tree_node* root_node,int i);
 #define __MAX_NAME_LENGTH 32
 #define __MAX_FUNC_PNUM 7
 #define __FUNC_HASH_NUM 29
+typedef struct type_ type;
+typedef struct func_node_ func_node;
+typedef struct struct_node_ struct_node;
+typedef struct var_node var_node;
+typedef struct field_list_ field_list;
+typedef struct func_plist_ func_plist;
 
-struct func_node{
+struct field_list_{
+    char name[__MAX_NAME_LENGTH];
+    type* kind;
+    field_list* tail;
+};
+struct func_plist_{
+    var_node* var;
+    func_plist* next;
+};
+struct type_{
+    enum {BASIC, ARRAY, STRUCTURE} kind;
+    union{
+        int basic;//1 int 2 float
+        struct {type* elem; int size;} array;
+        struct_node* structure;
+    }u;
+};
+struct func_node_{
     char name[__MAX_NAME_LENGTH];
     struct func_node* next;
-    char return_type;//int i float f struct s
-    struct struct_node* re_struct;//if struct point it, if not it's NULL
-    int parameter_num;
-    struct var_node **parameters;//point it's parameter's point
+    type* return_type;
+    func_plist* list;
 };
-struct struct_node{
+struct struct_node_{
     char name[__MAX_NAME_LENGTH];
     struct struct_node *next;
-    int member_num;//成员数量
-    struct var_node **members;
+    field_list* list;
 };
-struct var_node{
+struct var_node_{
     char name[__MAX_NAME_LENGTH];
-    char type;//int i float f struct s array a
-    struct struct_node *struct_type;//如果是struct类型的话，指向对应类型的struct_node
-    struct array_node* array;
-};
-struct array_node{
-    char type;//int i float f struct s array a
-    struct struct_node *struct_type;
-    struct array_node* array;
+    type kind;//int i float f struct s array a
+    var_node* next;
 };
 
-bool search_struct(struct struct_node* current, char *name);
+//bool search_struct(struct struct_node* current, char *name);
 void analy_Program(struct tree_node* root_node);
-struct func_node* func_list[__FUNC_HASH_NUM];
-void func_node_add(struct func_node *current);
-struct func_node* func_node_search(char *name);
+//struct func_node* func_list[__FUNC_HASH_NUM];
+//void func_node_add(struct func_node *current);
+//struct func_node* func_node_search(char *name);
 #endif
 struct tree_node *root;
 void read_tree(struct tree_node* root_node,int i);

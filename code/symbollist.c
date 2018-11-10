@@ -1,5 +1,5 @@
 #include "m.h"
-
+/*
 int hash(char *a){
     int b = 0;
     for(int i = 0; i < strlen(a); i++){
@@ -37,4 +37,4 @@ struct func_node* func_node_search(char *name){
     }
     return current;
 }
-
+*/
