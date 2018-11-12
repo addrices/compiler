@@ -1,3 +1,5 @@
+struct a;
+
 int main(int a, int b)
 {
     int i = 1;

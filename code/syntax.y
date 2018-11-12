@@ -1,5 +1,6 @@
 %{
     #include "m.h"
+    int error_line;
 %}
 %union {
     int type_int;

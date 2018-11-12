@@ -1,8 +1,8 @@
 #include "m.h"
+struct tree_node *root = NULL;
+bool ProFlag = true;
 
 int main(int argc, char** argv){
-    root = NULL;
-    ProFlag = true;
     if (argc <= 1) return 1;
     FILE* f = fopen(argv[1], "r");
     if (!f)

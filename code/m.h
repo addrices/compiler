@@ -22,7 +22,7 @@ struct tree_node{
     union n_un n_value;
     bool if_lex;
 };
-int error_line;
+extern int error_line;
 struct tree_node* create_node(char* a, int length, union n_un value,bool flag);
 void add_child(struct tree_node* a, struct tree_node* b);
 void add_sibling(struct tree_node* a, struct tree_node* b);
@@ -41,11 +41,6 @@ typedef struct field_list_ field_list;
 typedef struct func_plist_ func_plist;
 
 struct field_list_{
-    char name[__MAX_NAME_LENGTH];
-    type* kind;
-    field_list* tail;
-};
-struct func_plist_{
     var_node* var;
     func_plist* next;
 };
@@ -59,13 +54,13 @@ struct type_{
 };
 struct func_node_{
     char name[__MAX_NAME_LENGTH];
-    struct func_node* next;
+    func_node* next;
     type* return_type;
-    func_plist* list;
+    field_list* list;
 };
 struct struct_node_{
     char name[__MAX_NAME_LENGTH];
-    struct struct_node *next;
+    struct_node *next;
     field_list* list;
 };
 struct var_node_{
@@ -73,13 +68,14 @@ struct var_node_{
     type kind;//int i float f struct s array a
     var_node* next;
 };
-
+extern type INT_type;
+extern type FLOAT_type;
 //bool search_struct(struct struct_node* current, char *name);
 void analy_Program(struct tree_node* root_node);
 //struct func_node* func_list[__FUNC_HASH_NUM];
 //void func_node_add(struct func_node *current);
 //struct func_node* func_node_search(char *name);
 #endif
-struct tree_node *root;
+extern struct tree_node *root;
 void read_tree(struct tree_node* root_node,int i);
-bool ProFlag;
+extern bool ProFlag;
