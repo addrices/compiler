@@ -10,7 +10,9 @@ output:
 	bison -d -v syntax.y
 
 debug:
-	gcc semantic.c main.c syntax.tab.c -lfl -ly -o ../parser -g
+	flex lexical.l
+	bison -d syntax.y
+	gcc semantic.c symbollist.c main.c syntax.tab.c -lfl -ly -o ../parser -g
 
 play:
 	./../parser ../TEST/test1

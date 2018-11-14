@@ -6,12 +6,17 @@ type FLOAT_type = {BASIC, 2};
 
 void analy_ExtDefList(struct tree_node* root);
 void analy_ExtDef(struct tree_node* root);
-func_node* analy_FunDec(struct tree_node* root,type *kind);
+func_node* analy_FunDec(struct tree_node* root,type* kind);
 field_list* analy_VarList(struct tree_node* root);
 field_list* analy_ParamDec(struct tree_node* root);
 type* analy_Specifier(struct tree_node* root);
+type* analy_StructSpecifier(struct tree_node* root);
 var_node* analy_VarDec(struct tree_node* root,type* kind);
+field_list* analy_DecList(struct tree_node* root,type* kind,bool flag);
+field_list* analy_Dec(struct tree_node* root,type* kind,bool flag);
 field_list* analy_DefList(struct tree_node* root,bool flag);
+field_list* analy_Def(struct tree_node* root,bool flag);
+void analy_ExtDecList(struct tree_node* root,type* kind);
 
 //分析整个程序
 void analy_Program(struct tree_node* root_node){
@@ -38,35 +43,49 @@ void analy_ExtDefList(struct tree_node* root){
     }
 }
 
-//分析一个大定义
+/*分析一个大定义
+    Specifier ExtDecList SEMI
+|   Specifier SEMI
+|   Specifier FunDec CompSt
+*/
 void analy_ExtDef(struct tree_node* root){
 #ifdef __DEBUG
     printf("%s\n",root->n_type);
 #endif
     if(strcmp(root->first_child->next_brother->n_type, "FunDec") == 0){
-        type* return_kind = analy_Specifier(root->first_child);
-        func_node* current = analy_FunDec(root->first_child->next_brother, return_kind);
-        current->return_type = return_kind;
-        //add_node analy_FunDec
+        type* kind = analy_Specifier(root->first_child);
+        analy_FunDec(root->first_child->next_brother, kind);
     }
     else if(strcmp(root->first_child->next_brother->n_type, "SEMI") == 0){
-        //add
+        analy_Specifier(root->first_child);
     }
-        printf("struct def");
+    else{
+        type* kind = analy_Specifier(root->first_child);
+        analy_ExtDecList(root->first_child->next_brother,kind);
+    }
     return;
+}
+
+void analy_ExtDecList(struct tree_node* root,type* kind){
+#ifdef __DEBUG
+    printf("%s\n",root->n_type);
+#endif
+    analy_VarDec(root->first_child,kind);
+    if(root->first_child->next_brother != NULL)
+        analy_ExtDecList(root->first_child->next_brother->next_brother,kind);
 }
 
 /*函数的定义处理
     ID LP VarList RP
 |   ID LP RP
 */
-func_node* analy_FunDec(struct tree_node* root,type *kind){
+func_node* analy_FunDec(struct tree_node* root,type* kind){
 #ifdef __DEBUG
     printf("%s\n",root->n_type);
 #endif
     func_node* current = (func_node*)malloc(sizeof(func_node));
     current->return_type = kind;
-    if(strlen(root->first_child->n_type) < __MAX_NAME_LENGTH)
+    if(strlen(root->first_child->n_value.a) < __MAX_NAME_LENGTH)
         strcpy(current->name,root->first_child->n_type);
     else{
         printf("func name too long\n");
@@ -77,6 +96,10 @@ func_node* analy_FunDec(struct tree_node* root,type *kind){
     }
     else{
         current->list = NULL;
+    }
+    if(func_node_add(current) == false){
+        printf("func add error");
+        assert(0);
     }
     return current;
 }
@@ -106,7 +129,9 @@ field_list* analy_ParamDec(struct tree_node* root){
     printf("%s\n",root->n_type);
 #endif
     type* type_node = analy_Specifier(root->first_child);
-    field_list* flist = analy_VarDec(root->first_child->next_brother, type_node,true);
+    field_list* flist = (field_list*)malloc(sizeof(field_list));
+    flist->var = analy_VarDec(root->first_child->next_brother, type_node);
+    flist->next = NULL;
     return flist;
 }
 
@@ -126,7 +151,10 @@ type* analy_Specifier(struct tree_node* root){
     }
 }
 
-//分析声明的结构体的结构。加入结构体表。
+/*分析声明的结构体的结构。加入结构体表。或者是寻找对应的结构体。
+    STRUCT OptTag LC DefList RC
+|   STRUCT Tag
+*/
 type* analy_StructSpecifier(struct tree_node* root){
 #ifdef __DEBUG
     printf("%s\n",root->n_type);
@@ -138,16 +166,34 @@ type* analy_StructSpecifier(struct tree_node* root){
         struct tree_node* opttag = root->first_child->next_brother;
         if(opttag->first_child == NULL)
             new_struct->name[0] = '\0';
-        else
-            strcpy(new_struct->name, opttag->first_child->n_value.a);
+        else{
+            if(strlen(opttag->first_child->n_value.a) < __MAX_NAME_LENGTH)
+                strcpy(new_struct->name, opttag->first_child->n_value.a);
+            else{
+                printf("struct too long\n");
+                assert(0);
+            }
+        }
         new_struct->next = NULL;
-        new_struct->list = analy_DefList(root->first_child->next_brother->next_brother->next_brother);
+        new_struct->list = analy_DefList(root->first_child->next_brother->next_brother->next_brother,true);
+        if(struct_node_add(new_struct) == false){
+            printf("struct add error\n");
+            assert(0);
+        }
+        retype->u.structure = new_struct;
+        return retype;
     }
     else{
         type* retype = (type*)malloc(sizeof(type));
         retype->kind = STRUCTURE;
         struct tree_node* tag = root->first_child->next_brother;
-        //retype->u.structure = seek_struct(tag->first_child->n_value.a);
+        struct_node* current = NULL;
+        if(struct_node_search(current,tag->first_child->n_value.a) == false){
+            printf("no this struct\n");
+            assert(0);
+        }
+        retype->u.structure = current;
+        return retype;
         //找到对应的结构体。
     }
 }
@@ -166,10 +212,7 @@ field_list* analy_DefList(struct tree_node* root,bool flag){
     else if(flag == true){
         field_list* new_flist;
         new_flist = analy_Def(root->first_child,flag);
-        field_list* current;
-        while(current->next != NULL)
-            current = current->next;
-        current->next = analy_DefList(root->first_child->next_brother,flag);
+        new_flist->next = analy_DefList(root->first_child->next_brother,flag);
         return new_flist;
     }
     else{
@@ -178,6 +221,7 @@ field_list* analy_DefList(struct tree_node* root,bool flag){
         return NULL;
     }
 }
+
 /*返回一个field_list，其中保存着这个Def中声明的所有的变量。当flag为true时（struct调用）
 不然不用管field_list;
     Specifier DecList SEMI
@@ -249,65 +293,37 @@ field_list* analy_Dec(struct tree_node* root,type* kind,bool flag){
 }
 
 
-//这个要返回变量，因为要处理数组。
+/*这个要返回变量，因为要处理数组。将声明的变量加入变量表。
+    ID
+|   VarDec LB INT RB
+*/
 var_node* analy_VarDec(struct tree_node* root,type* kind){
 #ifdef __DEBUG
     printf("%s\n",root->n_type);
 #endif
-    return NULL;
-}
-
-/*
-//structspecifier中有定义和引用
-//struct tag是引用 STRUCT OptTag LC DefList RC中有定义的行为
-//用返回值的形式好像好一点 ？.？ 返回定义在结构体表中的指针
-struct struct_node* analy_StructSpecifier(struct tree_node* root){
-#ifdef __DEBUG
-    printf("%s\n",root->n_type);
-#endif
-    if(strcmp(root->first_child->next_brother->n_type,"Tag") == 0){
-        //search struct list;
-        struct struct_node* current;
-        char name[16];
-        strcpy(name,root->first_child->next_brother->first_child->n_value.a);
-        /*if(search_struct(current,name) == true)
-            return current;
+    var_node *new_node = (var_node*)malloc(sizeof(var_node));
+    if(root->first_child->next_brother == NULL){
+        if(strlen(root->first_child->n_value.a) < __MAX_NAME_LENGTH)
+            strcpy(new_node->name,root->first_child->n_value.a);
         else{
-            //error!!!;
+            printf("var name too long\n");
+            assert(0);
+        }    
+        new_node->kind = kind;
+        new_node->next = NULL;
+        if(var_node_add(new_node) == false){
+            printf("var add error\n");
             assert(0);
         }
+        return new_node;
     }
     else{
-        //create a struct node;
-        struct struct_node* current = (struct struct_node*)malloc(sizeof(struct struct_node));        
-        char name[16];
-        if(root->first_child->next_brother->first_child == NULL)//optTag = empty;
-            name[0] = '\0';
-        else
-            strcpy(name, root->first_child->next_brother->first_child->n_value.a);
-        struct tree_node* DefList = root->first_child->next_brother->next_brother->next_brother;
-        int def_num = 0;//这里不直接分析DefList是因为结构体表中的member需要他们的指针～～～而且DefList有要复用。。
-        struct tree_node* p = DefList;
-        while(p->first_child != NULL){
-            p = p->first_child->next_brother;
-            def_num++;
-        }
-        if(def_num == 0){
-            current->members = NULL;
-            return;
-        }
-        else
-            current->members = (struct var_node**)malloc(sizeof(struct var_node*) * def_num);
-        p = DefList;
-        for(int i = 0; i < def_num;i++){
-            //current->members[i] = analy_Def(p->first_child);
-            p = p->first_child->next_brother;
-        }
+        type* new_type_node = (type*)malloc(sizeof(type));
+        new_type_node->kind = ARRAY;
+        new_type_node->u.array.elem = kind;
+        new_type_node->u.array.size = root->first_child->next_brother->next_brother->n_value.n_value_i;
+        return analy_VarDec(root->first_child,new_type_node);
     }
 }
-
-struct var_node* analy_Def(struct tree_node* root){
-    
-}*/
 
 #endif

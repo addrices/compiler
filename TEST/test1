@@ -1,7 +1,4 @@
-struct a;
-
-int main(int a, int b)
-{
-    int i = 1;
-    b = 10 + i;
-}
+struct a{
+    int c;
+    int d;
+};

@@ -19,6 +19,7 @@ int main(int argc, char** argv){
     #endif
     #ifdef __LAB2_ENABLE
     analy_Program(root);
+    print_structlist();
     #endif
     return 0;
 }

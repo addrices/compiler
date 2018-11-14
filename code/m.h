@@ -36,13 +36,13 @@ void read_tree(struct tree_node* root_node,int i);
 typedef struct type_ type;
 typedef struct func_node_ func_node;
 typedef struct struct_node_ struct_node;
-typedef struct var_node var_node;
+typedef struct var_node_ var_node;
 typedef struct field_list_ field_list;
 typedef struct func_plist_ func_plist;
 
 struct field_list_{
     var_node* var;
-    func_plist* next;
+    field_list* next;
 };
 struct type_{
     enum {BASIC, ARRAY, STRUCTURE} kind;
@@ -65,16 +65,23 @@ struct struct_node_{
 };
 struct var_node_{
     char name[__MAX_NAME_LENGTH];
-    type kind;//int i float f struct s array a
+    type* kind;//int i float f struct s array a
     var_node* next;
 };
 extern type INT_type;
 extern type FLOAT_type;
-//bool search_struct(struct struct_node* current, char *name);
 void analy_Program(struct tree_node* root_node);
-//struct func_node* func_list[__FUNC_HASH_NUM];
-//void func_node_add(struct func_node *current);
-//struct func_node* func_node_search(char *name);
+bool func_node_add(func_node *current);
+bool func_node_search(func_node* current,char *name);
+bool var_node_add(var_node *current);
+bool var_node_search(var_node* current,char *name);
+bool struct_node_add(struct_node *current);
+bool struct_node_search(struct_node* current,char *name);
+#ifdef __DEBUG
+void print_varlist();
+void print_structlist();
+void print_funclist();
+#endif
 #endif
 extern struct tree_node *root;
 void read_tree(struct tree_node* root_node,int i);
