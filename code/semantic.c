@@ -17,6 +17,12 @@ field_list* analy_Dec(struct tree_node* root,type* kind,bool flag);
 field_list* analy_DefList(struct tree_node* root,bool flag);
 field_list* analy_Def(struct tree_node* root,bool flag);
 void analy_ExtDecList(struct tree_node* root,type* kind);
+bool type_equal(type* a_type, type* b_type);
+bool analy_Args(struct tree_node* root, field_list* flist);
+type* analy_Exp(struct tree_node* root);
+void analy_Stmt(struct tree_node* root);
+void analy_StmtList(struct tree_node* root);
+void analy_Compst(struct tree_node* root);
 
 //分析整个程序
 void analy_Program(struct tree_node* root_node){
@@ -55,6 +61,7 @@ void analy_ExtDef(struct tree_node* root){
     if(strcmp(root->first_child->next_brother->n_type, "FunDec") == 0){
         type* kind = analy_Specifier(root->first_child);
         analy_FunDec(root->first_child->next_brother, kind);
+        analy_Compst(root->first_child->next_brother->next_brother);
     }
     else if(strcmp(root->first_child->next_brother->n_type, "SEMI") == 0){
         analy_Specifier(root->first_child);
@@ -86,7 +93,7 @@ func_node* analy_FunDec(struct tree_node* root,type* kind){
     func_node* current = (func_node*)malloc(sizeof(func_node));
     current->return_type = kind;
     if(strlen(root->first_child->n_value.a) < __MAX_NAME_LENGTH)
-        strcpy(current->name,root->first_child->n_type);
+        strcpy(current->name,root->first_child->n_value.a);
     else{
         printf("func name too long\n");
         assert(0);
@@ -131,6 +138,7 @@ field_list* analy_ParamDec(struct tree_node* root){
     type* type_node = analy_Specifier(root->first_child);
     field_list* flist = (field_list*)malloc(sizeof(field_list));
     flist->var = analy_VarDec(root->first_child->next_brother, type_node);
+    print_varlist();
     flist->next = NULL;
     return flist;
 }
@@ -187,8 +195,8 @@ type* analy_StructSpecifier(struct tree_node* root){
         type* retype = (type*)malloc(sizeof(type));
         retype->kind = STRUCTURE;
         struct tree_node* tag = root->first_child->next_brother;
-        struct_node* current = NULL;
-        if(struct_node_search(current,tag->first_child->n_value.a) == false){
+        struct_node* current = struct_node_search(tag->first_child->n_value.a) ;
+        if(current == NULL){
             printf("no this struct\n");
             assert(0);
         }
@@ -324,6 +332,303 @@ var_node* analy_VarDec(struct tree_node* root,type* kind){
         new_type_node->u.array.size = root->first_child->next_brother->next_brother->n_value.n_value_i;
         return analy_VarDec(root->first_child,new_type_node);
     }
+}
+
+/*分析函数体内部的内容了hhh &.&
+    LC DefList StmtList RC
+*/
+void analy_Compst(struct tree_node* root){
+#ifdef __DEBUG
+    printf("%s\n",root->n_type);
+#endif
+    analy_DefList(root->first_child->next_brother,false);
+    analy_StmtList(root->first_child->next_brother->next_brother);
+}
+
+/*分析语句部分
+    Stmt StmtList
+|   empty
+*/
+void analy_StmtList(struct tree_node* root){
+#ifdef __DEBUG
+    printf("%s\n",root->n_type);
+#endif
+    if(root->first_child == NULL)
+        return;
+    else{
+        analy_Stmt(root->first_child);
+        analy_StmtList(root->first_child->next_brother);
+    }
+}
+
+/*分析一个语句。。。。
+    Exp SEMI
+|   CompSt
+|   RETURN Exp SEMI
+|   IF LP Exp RP Stmt
+|   IF LP Exp RP Stmt ELSE Stmt
+|   WHILE LP Exp RP Stmt
+*/
+void analy_Stmt(struct tree_node* root){
+#ifdef __DEBUG
+    printf("%s\n",root->n_type);
+#endif
+    if(strcmp(root->first_child->n_type, "Exp") == 0){
+        analy_Exp(root->first_child);
+    }  
+    else if(strcmp(root->first_child->n_type, "CompSt") == 0){
+        analy_Compst(root->first_child);
+    }
+    else if(strcmp(root->first_child->n_type, "RETURN") == 0){
+        analy_Exp(root->first_child->next_brother);
+    }
+    else if(strcmp(root->first_child->n_type, "IF") == 0){
+        struct tree_node* Exp = root->first_child->next_brother->next_brother;
+        if(analy_Exp(Exp) != &INT_type){
+            printf("IF type error\n");
+            assert(0);
+        }
+        struct tree_node* TStmt = Exp->next_brother->next_brother;
+        analy_Stmt(TStmt);
+        if(TStmt->next_brother != NULL){
+            struct tree_node* FStmt = TStmt->next_brother->next_brother;
+            analy_Stmt(FStmt);
+        }
+    }
+    else{
+        struct tree_node* Exp = root->first_child->next_brother->next_brother;
+        if(analy_Exp(Exp) != &INT_type){
+            printf("while type error\n");
+            assert(0);
+        }
+        struct tree_node* TStmt = Exp->next_brother->next_brother;
+        analy_Stmt(TStmt);
+    }
+}
+
+/*分析Exp，判断其中是否合法，如果不合法，报错，如果合法就返回这个exp的类型。
+    exp assignop exp
+|   exp and exp | exp or exp
+|   exp relop exp | exp plus exp
+|   exp minus exp | exp star exp
+|   exp div exp  | LP exp RP
+|   minus exp   | NOT exp
+|   ld lp args rp | id lp rp
+|   exp lb exp rb | exp dot id
+|   id | int
+|   float
+*/
+type* analy_Exp(struct tree_node* root){
+    struct tree_node* op = root->first_child->next_brother;
+    int state = 0;
+    if(strcmp(op->n_type,"ADD") == 0) state = 0;
+    else if(strcmp(op->n_type, "MINUS") == 0) state = 1;
+    else if(strcmp(op->n_type, "STAR") == 0) state = 2;
+    else if(strcmp(op->n_type, "DIV") == 0) state = 3;
+    else if(strcmp(op->n_type, "RELOP") == 0) state = 4; 
+    else if(strcmp(op->n_type, "AND") == 0) state = 5;
+    else if(strcmp(op->n_type, "OR") == 0) state = 6;
+    else if(strcmp(op->n_type, "ASSIGNOP") == 0) state = 7;
+    else if(strcmp(root->first_child->n_type, "MINUS") == 0) state = 8;
+    else if(strcmp(root->first_child->n_type, "NOT") == 0) state = 9;
+    else if(strcmp(root->first_child->next_brother->n_type, "LP") == 0){
+        if(strcmp(root->first_child->next_brother->next_brother->n_type, "RP") == 0)
+            state = 10;
+        else
+            state = 11;
+    }
+    else if(strcmp(root->first_child->next_brother->n_type, "LB") == 0) state = 12;
+    else if(strcmp(root->first_child->next_brother->n_type, "DOT") == 0) state = 13;
+    else if(strcmp(root->first_child->n_type, "ID")) state = 14;
+    else if(strcmp(root->first_child->n_type, "INT")) state = 15;
+    else if(strcmp(root->first_child->n_type, "FLOAT")) state = 16;
+    if(state >= 0 && state <= 7){
+        struct tree_node* a = root->first_child;
+        struct tree_node* b = a->next_brother->next_brother;
+        type* a_type = analy_Exp(a);
+        type* b_type = analy_Exp(b);
+        if(type_equal(a_type,b_type) != true){
+            if(state >= 0 && state <= 3){
+                if(a_type->kind != BASIC){
+                    printf("Exp fourop type error\n");
+                    assert(0);
+                }
+                else
+                    return a_type;
+            } 
+            else if(state == 4){
+                if(a_type->kind != BASIC){
+                    printf("Exp relop type error\n");
+                    assert(0);
+                }
+                else
+                    return &INT_type;
+            }
+            else if(state == 5 && state == 6){
+                if(a_type->kind == BASIC && a_type->u.basic == 1)
+                    return &INT_type;
+                else{
+                    printf("Exp ORAND type error\n");
+                    assert(0);
+                }
+            }
+            else{
+                return a_type;
+            }
+        }
+        printf("type not equal\n");
+        assert(0);
+        return a_type;
+    }
+    else if(state == 8){
+        type* a_type = analy_Exp(root->first_child->next_brother);
+        if(a_type->kind != BASIC){
+            printf("minus type error\n");
+            assert(0);
+            return a_type;
+        }
+        else
+            return a_type;
+    }
+    else if(state == 9){
+        type* a_type = analy_Exp(root->first_child->next_brother);
+        if(a_type->kind == BASIC && a_type->u.basic == 1){
+            return a_type;
+        }
+        else{
+            printf("NOT type error\n");
+            assert(0);
+            return a_type;
+        }
+    }
+    else if(state == 10){
+        func_node *func = func_node_search(root->first_child->n_value.a);
+        if(func == NULL){           //没找到对应的func
+            printf("no the func\n");
+            assert(0);
+        }
+        if(func->list != NULL){     //这个func应该是没有参数的。
+            printf("parameter error\n");
+            assert(0);
+            return func->return_type;
+        }
+        return func->return_type;
+    }
+    else if(state == 11){
+        func_node *func = func_node_search(root->first_child->n_value.a);
+        if(func == NULL){
+            printf("no the func\n");
+            assert(0);
+        }
+        if(analy_Args(root->first_child->next_brother->next_brother,func->list))
+            return func->return_type;
+        else{
+            printf("parameter error\n");
+            assert(0);
+            return func->return_type;
+        }
+    }
+    else if(state == 12){
+        type* a_type = analy_Exp(root->first_child);
+        type* b_type = analy_Exp(root->first_child->next_brother->next_brother);
+        if(a_type->kind != ARRAY){
+            printf("id type error(should be array)\n");
+            assert(0);
+            return NULL;
+        }
+        if(b_type->kind != BASIC || b_type->u.basic != 1){//[]中的数必须是int类型的。
+            printf("[type] error\n");
+            assert(0);
+            return NULL;
+        }
+        return a_type->u.array.elem;
+    }
+    else if(state == 13){
+        type* a_type = analy_Exp(root->first_child);
+        if(a_type->kind != STRUCTURE){
+            printf("id type error(should be structure)");
+            assert(0);
+        }
+        field_list* fp = a_type->u.structure->list;
+        while(fp != NULL){
+            if(strcmp(fp->var->name,root->first_child->next_brother->next_brother->n_value.a) == 0)
+                return fp->var->kind;
+            fp = fp->next;
+        }
+        printf("structure hasn't this field\n");
+        assert(0);
+    }
+    else if(state == 14){
+        var_node *var = var_node_search(root->first_child->n_value.a);
+        if(var == NULL){
+            printf("varlist hasn't this var\n");
+            assert(0);
+        }   
+        return var->kind;
+    }
+    else if(state == 15){
+        return &INT_type;
+    }
+    else{
+        return &FLOAT_type;
+    }
+}
+
+/*只要判断flist是否和func的flist相匹配即可。
+    Exp COMMA Args
+|   Exp
+*/
+bool analy_Args(struct tree_node* root, field_list* flist){
+    struct tree_node* exp =  root->first_child;
+    type* exp_type = analy_Exp(exp);
+    if(exp->next_brother == NULL){        //arg -> exp
+        if(flist->next != NULL)
+            return false;
+        else{
+            if(type_equal(exp_type,flist->var->kind) == true){
+                return true;
+            }
+            else
+                return false;
+        }
+    }
+    else{
+        if(type_equal(exp_type,flist->var->kind) == true){
+            return analy_Args(exp->next_brother->next_brother,flist->next);
+        }
+        else
+            return false;
+    }
+}
+
+//判断2个类型是否等价。
+bool type_equal(type* a_type, type* b_type){
+    if(a_type->kind == b_type->kind){
+        if(a_type->kind == BASIC){
+            if(a_type->u.basic == b_type->u.basic)
+                return true; 
+        }
+        else if(a_type->kind == ARRAY){
+            int a_array_num = 0;
+            type *a = a_type;
+            while(a->kind == ARRAY){
+                a_array_num++;
+                a = a->u.array.elem;
+            }
+            int b_array_num = 0;
+            type *b = b_type;
+            while(b->kind == ARRAY){
+                b_array_num++;
+                b = b->u.array.elem;
+            }
+            if(a_array_num == b_array_num && type_equal(a,b) == true)
+                return true;
+        }
+        else if(a_type->u.structure == b_type->u.structure){
+            return true;
+        }
+    }
+    return false;
 }
 
 #endif

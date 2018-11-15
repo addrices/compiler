@@ -4,12 +4,6 @@ func_node* FUNC_LIST[__FUNC_HASH_NUM];
 var_node* VAR_LIST[__FUNC_HASH_NUM];
 struct_node* STRUCT_LIST[__FUNC_HASH_NUM];
 int hash(char *a);
-bool func_node_add(func_node *current);
-bool func_node_search(func_node* current,char *name);
-bool var_node_add(var_node *current);
-bool var_node_search(var_node* current,char *name);
-bool struct_node_add(struct_node *current);
-bool struct_node_search(struct_node* current,char *name);
 
 int hash(char *a){
     int b = 0;
@@ -20,8 +14,7 @@ int hash(char *a){
 }
 
 bool func_node_add(func_node *current){
-    func_node* empty = NULL;
-    if(func_node_search(empty,current->name) == true)
+    if(func_node_search(current->name) != NULL)
         return false;
     int num = hash(current->name);
     func_node *begin = FUNC_LIST[num];
@@ -39,23 +32,20 @@ bool func_node_add(func_node *current){
     return true;
 }
 
-bool func_node_search(func_node* current,char *name){
+func_node* func_node_search(char *name){
     int b = hash(name);
     func_node* point = FUNC_LIST[b];
     while(point != NULL){
         if(strcmp(point->name,name) == 0){
-            current = point;
-            return true;
+            return point;
         }
         point = point->next;
     }
-    current = NULL;
-    return false;
+    return NULL;
 }
 
 bool var_node_add(var_node *current){
-    var_node* empty = NULL;
-    if(var_node_search(empty,current->name) == true)    //当其中有相同名字的则加入失败。
+    if(var_node_search(current->name) != NULL)    //当其中有相同名字的则加入失败。
         return false;
     int num = hash(current->name);
     var_node *begin = VAR_LIST[num];
@@ -73,23 +63,20 @@ bool var_node_add(var_node *current){
     return true;
 }
 
-bool var_node_search(var_node* current,char *name){
+var_node* var_node_search(char *name){
     int b = hash(name);
     var_node* point = VAR_LIST[b];
     while(point != NULL){
         if(strcmp(point->name,name) == 0){
-            current = point;
-            return true;
+            return point;
         }
         point = point->next;
     }
-    current = NULL;
-    return false;
+    return NULL;
 }
 
 bool struct_node_add(struct_node *current){
-    struct_node* empty = NULL;
-    if(struct_node_search(empty,current->name) == true)
+    if(struct_node_search(current->name) != NULL)
         return false;
     int num = hash(current->name);
     struct_node *begin = STRUCT_LIST[num];
@@ -107,19 +94,18 @@ bool struct_node_add(struct_node *current){
     return true;
 }
 
-bool struct_node_search(struct_node* current,char *name){
+struct_node* struct_node_search(char *name){
     int b = hash(name);
     struct_node* point = STRUCT_LIST[b];
     while(point != NULL){
         if(strcmp(point->name,name) == 0){
-            current = point;
-            return true;
+            return point;
         }
         point = point->next;
     }
-    current = NULL;
-    return false;
+    return NULL;
 }
+
 #ifdef __DEBUG
 void print_func(func_node* func);
 void print_type(type* kind);
@@ -149,23 +135,23 @@ void print_func(func_node* func){
 void print_type(type* kind){
     if(kind->kind == BASIC){
         if(kind->u.basic = 1)
-            printf("Int    ");
+            printf("Int  ");
         else
-            printf("Float    ");
+            printf("Float  ");
     }
-    else if(kind->kind = ARRAY){
-        printf("ARRAY   ");
+    else if(kind->kind == ARRAY){
+        printf("ARRAY  ");
     }
     else{
-        printf("STRUCTURE");
+        printf("STRUCTURE  ");
     }
     return;
 }
 
 void print_flist(field_list* flist){
     field_list* point = flist;
-    while(flist != NULL){
-        printf("flist\n");
+    printf("flist\n");
+    while(point != NULL){
         print_var(point->var);
         point = point->next;
     }

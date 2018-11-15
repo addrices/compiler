@@ -72,11 +72,11 @@ extern type INT_type;
 extern type FLOAT_type;
 void analy_Program(struct tree_node* root_node);
 bool func_node_add(func_node *current);
-bool func_node_search(func_node* current,char *name);
+func_node* func_node_search(char *name);
 bool var_node_add(var_node *current);
-bool var_node_search(var_node* current,char *name);
+var_node* var_node_search(char *name);
 bool struct_node_add(struct_node *current);
-bool struct_node_search(struct_node* current,char *name);
+struct_node* struct_node_search(char *name);
 #ifdef __DEBUG
 void print_varlist();
 void print_structlist();
