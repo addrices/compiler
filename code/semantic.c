@@ -419,35 +419,40 @@ void analy_Stmt(struct tree_node* root){
 |   float
 */
 type* analy_Exp(struct tree_node* root){
+#ifdef __DEBUG
+    printf("%s\n",root->n_type);
+#endif
     struct tree_node* op = root->first_child->next_brother;
     int state = 0;
-    if(strcmp(op->n_type,"ADD") == 0) state = 0;
-    else if(strcmp(op->n_type, "MINUS") == 0) state = 1;
-    else if(strcmp(op->n_type, "STAR") == 0) state = 2;
-    else if(strcmp(op->n_type, "DIV") == 0) state = 3;
-    else if(strcmp(op->n_type, "RELOP") == 0) state = 4; 
-    else if(strcmp(op->n_type, "AND") == 0) state = 5;
-    else if(strcmp(op->n_type, "OR") == 0) state = 6;
-    else if(strcmp(op->n_type, "ASSIGNOP") == 0) state = 7;
+    if(op != NULL){
+        if(strcmp(op->n_type,"ADD") == 0) state = 0;
+        else if(strcmp(op->n_type, "MINUS") == 0) state = 1;
+        else if(strcmp(op->n_type, "STAR") == 0) state = 2;
+        else if(strcmp(op->n_type, "DIV") == 0) state = 3;
+        else if(strcmp(op->n_type, "RELOP") == 0) state = 4; 
+        else if(strcmp(op->n_type, "AND") == 0) state = 5;
+        else if(strcmp(op->n_type, "OR") == 0) state = 6;
+        else if(strcmp(op->n_type, "ASSIGNOP") == 0) state = 7;
+        if(strcmp(root->first_child->next_brother->n_type, "LP") == 0){
+            if(strcmp(root->first_child->next_brother->next_brother->n_type, "RP") == 0)
+                state = 10;
+            else
+                state = 11;
+        }
+        else if(strcmp(root->first_child->next_brother->n_type, "LB") == 0) state = 12;
+        else if(strcmp(root->first_child->next_brother->n_type, "DOT") == 0) state = 13;
+    }
     else if(strcmp(root->first_child->n_type, "MINUS") == 0) state = 8;
     else if(strcmp(root->first_child->n_type, "NOT") == 0) state = 9;
-    else if(strcmp(root->first_child->next_brother->n_type, "LP") == 0){
-        if(strcmp(root->first_child->next_brother->next_brother->n_type, "RP") == 0)
-            state = 10;
-        else
-            state = 11;
-    }
-    else if(strcmp(root->first_child->next_brother->n_type, "LB") == 0) state = 12;
-    else if(strcmp(root->first_child->next_brother->n_type, "DOT") == 0) state = 13;
-    else if(strcmp(root->first_child->n_type, "ID")) state = 14;
-    else if(strcmp(root->first_child->n_type, "INT")) state = 15;
-    else if(strcmp(root->first_child->n_type, "FLOAT")) state = 16;
+    else if(strcmp(root->first_child->n_type, "ID") == 0) state = 14;
+    else if(strcmp(root->first_child->n_type, "INT") == 0) state = 15;
+    else if(strcmp(root->first_child->n_type, "FLOAT") == 0) state = 16;
     if(state >= 0 && state <= 7){
         struct tree_node* a = root->first_child;
         struct tree_node* b = a->next_brother->next_brother;
         type* a_type = analy_Exp(a);
         type* b_type = analy_Exp(b);
-        if(type_equal(a_type,b_type) != true){
+        if(type_equal(a_type,b_type) == true){
             if(state >= 0 && state <= 3){
                 if(a_type->kind != BASIC){
                     printf("Exp fourop type error\n");

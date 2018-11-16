@@ -3,6 +3,11 @@ struct a{
     int d;
 };
 
+int add(int q, int w){
+    return q + w;
+}
 int main(struct a au){
     int b;
+    struct a aada;
+    e = add(aada.c, aada.d);
 }
