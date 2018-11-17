@@ -12,7 +12,7 @@
 DIGIT [0-9]
 DIGIT_16 [0-9a-fA-F]
 DIGIT_8 [0-7]
-LETTER [_a-zA-Z]
+LETTER [_a-zA-Z0-9]
 INT [1-9]{DIGIT}*|0
 INT_16 0x[1-9a-fA-F]{DIGIT_16}*
 INT_8 0[1-7]{DIGIT_8}*

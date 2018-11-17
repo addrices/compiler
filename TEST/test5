@@ -1,8 +1,5 @@
 int main()
 {
-// line comment
-/*
-block comment
-*/
-int i = 1;
-}//gadf
+    int i;
+    i = 3.7;
+}

@@ -39,7 +39,14 @@ typedef struct struct_node_ struct_node;
 typedef struct var_node_ var_node;
 typedef struct field_list_ field_list;
 typedef struct func_plist_ func_plist;
+typedef struct error2_node_ error2_node;
 
+struct error2_node_{
+    int num;
+    int length;
+    char info[64];
+    error2_node* next;
+};
 struct field_list_{
     var_node* var;
     field_list* next;
@@ -70,6 +77,7 @@ struct var_node_{
 };
 extern type INT_type;
 extern type FLOAT_type;
+extern error2_node* error2_line;
 void analy_Program(struct tree_node* root_node);
 bool func_node_add(func_node *current);
 func_node* func_node_search(char *name);
@@ -77,6 +85,9 @@ bool var_node_add(var_node *current);
 var_node* var_node_search(char *name);
 bool struct_node_add(struct_node *current);
 struct_node* struct_node_search(char *name);
+void print_error2s();
+void error2_node_add(error2_node* current);
+
 #ifdef __DEBUG
 void print_varlist();
 void print_structlist();

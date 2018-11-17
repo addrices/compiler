@@ -105,8 +105,13 @@ func_node* analy_FunDec(struct tree_node* root,type* kind){
         current->list = NULL;
     }
     if(func_node_add(current) == false){
-        printf("func add error");
-        assert(0);
+            error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+            err->length = root->n_length;
+            err->num = 4;
+            err->next = NULL;
+            sprintf(err->info,"Redefined function \"%s\"", current->name);
+            error2_node_add(err);
+            return NULL;
     }
     return current;
 }
@@ -138,7 +143,9 @@ field_list* analy_ParamDec(struct tree_node* root){
     type* type_node = analy_Specifier(root->first_child);
     field_list* flist = (field_list*)malloc(sizeof(field_list));
     flist->var = analy_VarDec(root->first_child->next_brother, type_node);
+    #ifdef __DEBUG
     print_varlist();
+    #endif
     flist->next = NULL;
     return flist;
 }
@@ -149,7 +156,7 @@ type* analy_Specifier(struct tree_node* root){
     printf("%s\n",root->n_type);
 #endif
     if(strcmp(root->first_child->n_type, "TYPE") == 0){
-        if(strcmp(root->first_child->n_value.a, "INT"))
+        if(strcmp(root->first_child->n_value.a, "int") == 0)
             return &INT_type;
         else
             return &FLOAT_type;
@@ -320,8 +327,13 @@ var_node* analy_VarDec(struct tree_node* root,type* kind){
         new_node->kind = kind;
         new_node->next = NULL;
         if(var_node_add(new_node) == false){
-            printf("var add error\n");
-            assert(0);
+            error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+            err->length = root->n_length;
+            err->num = 3;
+            err->next = NULL;
+            sprintf(err->info,"Redefined variable \"%s\"",new_node->name);
+            error2_node_add(err);
+            return NULL;
         }
         return new_node;
     }
@@ -433,7 +445,7 @@ type* analy_Exp(struct tree_node* root){
         else if(strcmp(op->n_type, "AND") == 0) state = 5;
         else if(strcmp(op->n_type, "OR") == 0) state = 6;
         else if(strcmp(op->n_type, "ASSIGNOP") == 0) state = 7;
-        if(strcmp(root->first_child->next_brother->n_type, "LP") == 0){
+        else if(strcmp(root->first_child->next_brother->n_type, "LP") == 0){
             if(strcmp(root->first_child->next_brother->next_brother->n_type, "RP") == 0)
                 state = 10;
             else
@@ -458,11 +470,15 @@ type* analy_Exp(struct tree_node* root){
                     printf("Exp fourop type error\n");
                     assert(0);
                 }
-                else
-                    return a_type;
+                else{
+                    if(a_type == NULL)
+                        return b_type;
+                    else
+                        return a_type;
+                }
             } 
             else if(state == 4){
-                if(a_type->kind != BASIC){
+                if(a_type->kind != BASIC && a_type != NULL){
                     printf("Exp relop type error\n");
                     assert(0);
                 }
@@ -470,7 +486,7 @@ type* analy_Exp(struct tree_node* root){
                     return &INT_type;
             }
             else if(state == 5 && state == 6){
-                if(a_type->kind == BASIC && a_type->u.basic == 1)
+                if((a_type->kind == BASIC && a_type->u.basic == 1) || a_type == NULL)
                     return &INT_type;
                 else{
                     printf("Exp ORAND type error\n");
@@ -478,16 +494,39 @@ type* analy_Exp(struct tree_node* root){
                 }
             }
             else{
-                return a_type;
+                if(strcmp(root->first_child->first_child->n_type,"INT") == 0 || strcmp(root->first_child->first_child->n_type,"FLOAT") == 0){
+                    error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+                    err->length = root->n_length;
+                    err->next = NULL;
+                    err->num = 6;
+                    sprintf(err->info,"The left-hand side of an assignment must be a variable");
+                    error2_node_add(err);
+                    return NULL;
+                }
+                if(a_type == NULL)
+                    return b_type;
+                else
+                    return a_type;
             }
         }
-        printf("type not equal\n");
-        assert(0);
-        return a_type;
+        error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+        err->length = root->n_length;
+        err->next = NULL;
+        if(state == 7){
+            err->num = 5;
+            sprintf(err->info,"Type mismatched for assignment");
+            error2_node_add(err);
+        }
+        else{
+            err->num = 7;
+            sprintf(err->info,"Type mismatched for operands");
+            error2_node_add(err);
+        }
+        return NULL;
     }
     else if(state == 8){
         type* a_type = analy_Exp(root->first_child->next_brother);
-        if(a_type->kind != BASIC){
+        if(a_type->kind != BASIC && a_type->kind != NULL){
             printf("minus type error\n");
             assert(0);
             return a_type;
@@ -497,7 +536,7 @@ type* analy_Exp(struct tree_node* root){
     }
     else if(state == 9){
         type* a_type = analy_Exp(root->first_child->next_brother);
-        if(a_type->kind == BASIC && a_type->u.basic == 1){
+        if((a_type->kind == BASIC && a_type->u.basic == 1) || a_type == NULL){
             return a_type;
         }
         else{
@@ -509,8 +548,13 @@ type* analy_Exp(struct tree_node* root){
     else if(state == 10){
         func_node *func = func_node_search(root->first_child->n_value.a);
         if(func == NULL){           //没找到对应的func
-            printf("no the func\n");
-            assert(0);
+            error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+            err->length = root->n_length;
+            err->num = 2;
+            err->next = NULL;
+            sprintf(err->info,"Undefined function \"%s\"",root->first_child->n_value.a);
+            error2_node_add(err);
+            return NULL;
         }
         if(func->list != NULL){     //这个func应该是没有参数的。
             printf("parameter error\n");
@@ -522,8 +566,13 @@ type* analy_Exp(struct tree_node* root){
     else if(state == 11){
         func_node *func = func_node_search(root->first_child->n_value.a);
         if(func == NULL){
-            printf("no the func\n");
-            assert(0);
+            error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+            err->length = root->n_length;
+            err->num = 2;
+            err->next = NULL;
+            sprintf(err->info,"Undefined function \"%s\"",root->first_child->n_value.a);
+            error2_node_add(err);
+            return NULL;
         }
         if(analy_Args(root->first_child->next_brother->next_brother,func->list))
             return func->return_type;
@@ -536,12 +585,12 @@ type* analy_Exp(struct tree_node* root){
     else if(state == 12){
         type* a_type = analy_Exp(root->first_child);
         type* b_type = analy_Exp(root->first_child->next_brother->next_brother);
-        if(a_type->kind != ARRAY){
+        if(a_type->kind != ARRAY && a_type != NULL){
             printf("id type error(should be array)\n");
             assert(0);
             return NULL;
         }
-        if(b_type->kind != BASIC || b_type->u.basic != 1){//[]中的数必须是int类型的。
+        if((b_type->kind != BASIC || b_type->u.basic != 1) && b_type->kind != NULL){//[]中的数必须是int类型的。
             printf("[type] error\n");
             assert(0);
             return NULL;
@@ -566,8 +615,13 @@ type* analy_Exp(struct tree_node* root){
     else if(state == 14){
         var_node *var = var_node_search(root->first_child->n_value.a);
         if(var == NULL){
-            printf("varlist hasn't this var\n");
-            assert(0);
+            error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+            err->length = root->n_length;
+            err->num = 1;
+            err->next = NULL;
+            sprintf(err->info,"Undefined variable \"%s\"",root->first_child->n_value.a);
+            error2_node_add(err);
+            return NULL;
         }   
         return var->kind;
     }
@@ -608,6 +662,8 @@ bool analy_Args(struct tree_node* root, field_list* flist){
 
 //判断2个类型是否等价。
 bool type_equal(type* a_type, type* b_type){
+    if(a_type == NULL || b_type == NULL)
+        return true;
     if(a_type->kind == b_type->kind){
         if(a_type->kind == BASIC){
             if(a_type->u.basic == b_type->u.basic)

@@ -1,4 +1,9 @@
+int func(int i)
+{
+    return i;
+}
+
 int main()
 {
-    float i = 1.05e;
+    func(1, 2);
 }
