@@ -12,11 +12,11 @@ field_list* analy_VarList(struct tree_node* root);
 field_list* analy_ParamDec(struct tree_node* root);
 type* analy_Specifier(struct tree_node* root);
 type* analy_StructSpecifier(struct tree_node* root);
-var_node* analy_VarDec(struct tree_node* root,type* kind);
-field_list* analy_DecList(struct tree_node* root,type* kind,bool flag);
-field_list* analy_Dec(struct tree_node* root,type* kind,bool flag);
-field_list* analy_DefList(struct tree_node* root,bool flag);
-field_list* analy_Def(struct tree_node* root,bool flag);
+var_node* analy_VarDec(struct tree_node* root,type* kind, bool flag);
+sfield_list* analy_DecList(struct tree_node* root,type* kind,bool flag);
+sfield_list* analy_Dec(struct tree_node* root,type* kind,bool flag);
+sfield_list* analy_DefList(struct tree_node* root,bool flag);
+sfield_list* analy_Def(struct tree_node* root,bool flag);
 void analy_ExtDecList(struct tree_node* root,type* kind);
 bool type_equal(type* a_type, type* b_type);
 bool analy_Args(struct tree_node* root, field_list* flist);
@@ -65,14 +65,13 @@ void analy_ExtDef(struct tree_node* root){
         func_node* f = analy_FunDec(root->first_child->next_brother, kind);
         analy_Compst(root->first_child->next_brother->next_brother);
         if(f != NULL){
-            if(type_equal(f->return_type, &RE_type)){
+            if(type_equal(f->return_type, RE_type) == false){
                 error2_node* err = (error2_node*)malloc(sizeof(error2_node));
                 err->length = root->n_length;
                 err->num = 8;
                 err->next = NULL;
                 sprintf(err->info,"Type mismatched for return.");
                 error2_node_add(err);
-                return NULL;
             }
         }
     }
@@ -90,7 +89,7 @@ void analy_ExtDecList(struct tree_node* root,type* kind){
 #ifdef __DEBUG
     printf("%s\n",root->n_type);
 #endif
-    analy_VarDec(root->first_child,kind);
+    analy_VarDec(root->first_child,kind,false);
     if(root->first_child->next_brother != NULL)
         analy_ExtDecList(root->first_child->next_brother->next_brother,kind);
 }
@@ -155,7 +154,7 @@ field_list* analy_ParamDec(struct tree_node* root){
 #endif
     type* type_node = analy_Specifier(root->first_child);
     field_list* flist = (field_list*)malloc(sizeof(field_list));
-    flist->var = analy_VarDec(root->first_child->next_brother, type_node);
+    flist->var = analy_VarDec(root->first_child->next_brother, type_node, false);
     #ifdef __DEBUG
     print_varlist();
     #endif
@@ -198,7 +197,7 @@ type* analy_StructSpecifier(struct tree_node* root){
             if(strlen(opttag->first_child->n_value.a) < __MAX_NAME_LENGTH)
                 strcpy(new_struct->name, opttag->first_child->n_value.a);
             else{
-                printf("struct too long\n");
+                printf("structname too long\n");
                 assert(0);
             }
         }
@@ -237,20 +236,33 @@ type* analy_StructSpecifier(struct tree_node* root){
 }
 
 
-/*当flag是true是说明是struct调用他，所以会返回一个field_list的指针，如果为false则是compst调用的返回NULL；
+/*当flag是true是说明是struct调用他，所以会返回一个sfield_list的指针，如果为false则是compst调用的返回NULL；
     Def DefList
 |   Empty
 */
-field_list* analy_DefList(struct tree_node* root,bool flag){
+sfield_list* analy_DefList(struct tree_node* root,bool flag){
 #ifdef __DEBUG
     printf("%s\n",root->n_type);
 #endif
     if(root->first_child == NULL)
         return NULL;
     else if(flag == true){
-        field_list* new_flist;
+        sfield_list* new_flist;
         new_flist = analy_Def(root->first_child,flag);
         new_flist->next = analy_DefList(root->first_child->next_brother,flag);
+        sfield_list* check = new_flist->next;
+        while(check != NULL){
+            if(strcmp(check->name,new_flist->name) == 0){
+                error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+                err->length = root->n_length;
+                err->num = 15;
+                err->next = NULL;
+                sprintf(err->info,"redefined field");
+                error2_node_add(err);
+                return NULL;
+            }
+            check = check->next;
+        }
         return new_flist;
     }
     else{
@@ -260,17 +272,17 @@ field_list* analy_DefList(struct tree_node* root,bool flag){
     }
 }
 
-/*返回一个field_list，其中保存着这个Def中声明的所有的变量。当flag为true时（struct调用）
-不然不用管field_list;
+/*返回一个sfield_list，其中保存着这个Def中声明的所有的变量。当flag为true时（struct调用）
+不然不用管sfield_list;
     Specifier DecList SEMI
 */
-field_list* analy_Def(struct tree_node* root,bool flag){
+sfield_list* analy_Def(struct tree_node* root,bool flag){
 #ifdef __DEBUG
     printf("%s\n",root->n_type);
 #endif
     type* kind = analy_Specifier(root->first_child);
     if(flag == true){
-        field_list* new_flist = analy_DecList(root->first_child->next_brother,kind,flag);
+        sfield_list* new_flist = analy_DecList(root->first_child->next_brother,kind,flag);
         return new_flist;
     }
     else{
@@ -279,16 +291,16 @@ field_list* analy_Def(struct tree_node* root,bool flag){
     }
 }
 
-/*参考ParamDef，返回field_list的一个指针。
+/*参考ParamDef，返回sfield_list的一个指针。
     Dec
 |   Dec COMMA DecList
 */
-field_list* analy_DecList(struct tree_node* root,type* kind,bool flag){
+sfield_list* analy_DecList(struct tree_node* root,type* kind,bool flag){
 #ifdef __DEBUG
     printf("%s\n",root->n_type);
 #endif
     if(flag){
-        field_list* new_fnode;
+        sfield_list* new_fnode;
         if(root->first_child->next_brother != NULL){
             new_fnode = analy_Dec(root->first_child,kind,flag);
             new_fnode->next = analy_DecList(root->first_child->next_brother->next_brother,kind,flag);
@@ -310,18 +322,20 @@ field_list* analy_DecList(struct tree_node* root,type* kind,bool flag){
     }
 }
 
-/*analyVarDec,那个field_list的处理要在这里做，应为varDec要处理数组。
+/*analyVarDec,那个sfield_list的处理要在这里做，应为varDec要处理数组。
     VarDec
 |   VarDec ASSIGNOP EXP
 */
-field_list* analy_Dec(struct tree_node* root,type* kind,bool flag){
+sfield_list* analy_Dec(struct tree_node* root,type* kind,bool flag){
 #ifdef __DEBUG
     printf("%s\n",root->n_type);
 #endif
     if(flag){
-        field_list* new_fnode = (field_list*)malloc(sizeof(field_list));
+        sfield_list* new_fnode = (sfield_list*)malloc(sizeof(sfield_list));
         new_fnode->next = NULL;
-        new_fnode->var = analy_VarDec(root->first_child, kind);
+        var_node* var = analy_VarDec(root->first_child, kind, flag);
+        strcmp(new_fnode->name,var->name);
+        new_fnode->kind = var->kind;
         if(root->first_child->next_brother == NULL)
             return new_fnode;
         else{
@@ -335,8 +349,9 @@ field_list* analy_Dec(struct tree_node* root,type* kind,bool flag){
         }
     }
     else{
-        analy_VarDec(root->first_child,kind);
+        analy_VarDec(root->first_child,kind,flag);
         return NULL;
+        //判断；
     }
 }
 
@@ -345,7 +360,7 @@ field_list* analy_Dec(struct tree_node* root,type* kind,bool flag){
     ID
 |   VarDec LB INT RB
 */
-var_node* analy_VarDec(struct tree_node* root,type* kind){
+var_node* analy_VarDec(struct tree_node* root,type* kind,bool flag){
 #ifdef __DEBUG
     printf("%s\n",root->n_type);
 #endif
@@ -359,14 +374,16 @@ var_node* analy_VarDec(struct tree_node* root,type* kind){
         }    
         new_node->kind = kind;
         new_node->next = NULL;
-        if(var_node_add(new_node) == false){
-            error2_node* err = (error2_node*)malloc(sizeof(error2_node));
-            err->length = root->n_length;
-            err->num = 3;
-            err->next = NULL;
-            sprintf(err->info,"Redefined variable \"%s\"",new_node->name);
-            error2_node_add(err);
-            return NULL;
+        if(flag == false){
+            if(var_node_add(new_node) == false){
+                error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+                err->length = root->n_length;
+                err->num = 3;
+                err->next = NULL;
+                sprintf(err->info,"Redefined variable \"%s\"",new_node->name);
+                error2_node_add(err);
+                return NULL;
+            }
         }
         return new_node;
     }
@@ -375,7 +392,7 @@ var_node* analy_VarDec(struct tree_node* root,type* kind){
         new_type_node->kind = ARRAY;
         new_type_node->u.array.elem = kind;
         new_type_node->u.array.size = root->first_child->next_brother->next_brother->n_value.n_value_i;
-        return analy_VarDec(root->first_child,new_type_node);
+        return analy_VarDec(root->first_child,new_type_node,flag);
     }
 }
 
@@ -500,31 +517,51 @@ type* analy_Exp(struct tree_node* root){
         type* b_type = analy_Exp(b);
         if(type_equal(a_type,b_type) == true){
             if(state >= 0 && state <= 3){
-                if(a_type->kind != BASIC){
-                    printf("Exp fourop type error\n");
-                    assert(0);
-                }
-                else{
-                    if(a_type == NULL)
-                        return b_type;
+                if(a_type != NULL){
+                    if(a_type->kind != BASIC){
+                        error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+                        err->length = root->n_length;
+                        err->next = NULL;
+                        err->num = 7;
+                        sprintf(err->info,"Type mismatched for operands");
+                        error2_node_add(err);
+                        return NULL;
+                    }
                     else
                         return a_type;
                 }
+                else{
+                        return b_type;
+                }
             } 
             else if(state == 4){
-                if(a_type->kind != BASIC && a_type != NULL){
-                    printf("Exp relop type error\n");
-                    assert(0);
+                if(a_type != NULL){
+                    if(a_type->kind != BASIC){
+                        error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+                        err->length = root->n_length;
+                        err->next = NULL;
+                        err->num = 7;
+                        sprintf(err->info,"Type mismatched for operands");
+                        error2_node_add(err);
+                        return NULL;
+                    }
                 }
                 else
                     return &INT_type;
             }
             else if(state == 5 && state == 6){
-                if((a_type->kind == BASIC && a_type->u.basic == 1) || a_type == NULL)
+                if(a_type == NULL)
+                    return &INT_type;
+                if((a_type->kind == BASIC && a_type->u.basic == 1))
                     return &INT_type;
                 else{
-                    printf("Exp ORAND type error\n");
-                    assert(0);
+                    error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+                    err->length = root->n_length;
+                    err->next = NULL;
+                    err->num = 7;
+                    sprintf(err->info,"Type mismatched for operands");
+                    error2_node_add(err);
+                    return NULL;
                 }
             }
             else{
@@ -560,7 +597,7 @@ type* analy_Exp(struct tree_node* root){
     }
     else if(state == 8){
         type* a_type = analy_Exp(root->first_child->next_brother);
-        if(a_type->kind != BASIC && a_type->kind != NULL){
+        if(a_type->kind != BASIC && a_type != NULL){
             error2_node* err = (error2_node*)malloc(sizeof(error2_node));
             err->length = root->n_length;
             err->num = 7;
@@ -652,7 +689,7 @@ type* analy_Exp(struct tree_node* root){
             error2_node_add(err);
             return NULL;
         }
-        if((b_type->kind != BASIC || b_type->u.basic != 1) && b_type->kind != NULL){//[]中的数必须是int类型的。
+        if((b_type->kind != BASIC || b_type->u.basic != 1) && b_type != NULL){//[]中的数必须是int类型的。
             error2_node* err = (error2_node*)malloc(sizeof(error2_node));
             err->length = root->n_length;
             err->num = 12;
@@ -674,10 +711,10 @@ type* analy_Exp(struct tree_node* root){
             error2_node_add(err);
             return NULL;
         }
-        field_list* fp = a_type->u.structure->list;
+        sfield_list* fp = a_type->u.structure->list;
         while(fp != NULL){
-            if(strcmp(fp->var->name,root->first_child->next_brother->next_brother->n_value.a) == 0)
-                return fp->var->kind;
+            if(strcmp(fp->name,root->first_child->next_brother->next_brother->n_value.a) == 0)
+                return fp->kind;
             fp = fp->next;
         }
         error2_node* err = (error2_node*)malloc(sizeof(error2_node));
@@ -716,6 +753,8 @@ type* analy_Exp(struct tree_node* root){
 bool analy_Args(struct tree_node* root, field_list* flist){
     struct tree_node* exp =  root->first_child;
     type* exp_type = analy_Exp(exp);
+    if(flist != NULL)
+        return false;
     if(exp->next_brother == NULL){        //arg -> exp
         if(flist->next != NULL)
             return false;

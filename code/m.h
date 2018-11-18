@@ -40,12 +40,18 @@ typedef struct var_node_ var_node;
 typedef struct field_list_ field_list;
 typedef struct func_plist_ func_plist;
 typedef struct error2_node_ error2_node;
+typedef struct sfield_list_ sfield_list;
 
 struct error2_node_{
     int num;
     int length;
     char info[64];
     error2_node* next;
+};
+struct sfield_list_{
+    char name[16];
+    type* kind;
+    sfield_list* next;
 };
 struct field_list_{
     var_node* var;
@@ -68,7 +74,7 @@ struct func_node_{
 struct struct_node_{
     char name[__MAX_NAME_LENGTH];
     struct_node *next;
-    field_list* list;
+    sfield_list* list;
 };
 struct var_node_{
     char name[__MAX_NAME_LENGTH];

@@ -112,6 +112,8 @@ void print_type(type* kind);
 void print_flist(field_list* flist);
 void print_var(var_node* var);
 void print_struct(struct_node* point);
+void print_sflist(sfield_list* flist);
+
 void print_funclist(){
     func_node* point;
     for(int i = 0; i < __FUNC_HASH_NUM; i++){
@@ -158,6 +160,17 @@ void print_flist(field_list* flist){
     return;
 }
 
+void print_sflist(sfield_list* flist){
+    sfield_list* point = flist;
+    printf("flist\n");
+    while(point != NULL){
+        printf("name %s",point->name);
+        print_type(point->kind);
+        point = point->next;
+    }
+    return;
+}
+
 void print_var(var_node* var){
     printf("varname  ");
     print_type(var->kind);
@@ -177,7 +190,7 @@ void print_structlist(){
 
 void print_struct(struct_node* point){
     printf("struct %s\n",point->name);
-    print_flist(point->list);
+    print_sflist(point->list);
 }
 
 void print_varlist(){
