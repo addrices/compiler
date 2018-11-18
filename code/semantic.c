@@ -3,6 +3,7 @@
 
 type INT_type = {BASIC, 1};
 type FLOAT_type = {BASIC, 2};
+type* RE_type = NULL;
 
 void analy_ExtDefList(struct tree_node* root);
 void analy_ExtDef(struct tree_node* root);
@@ -59,9 +60,21 @@ void analy_ExtDef(struct tree_node* root){
     printf("%s\n",root->n_type);
 #endif
     if(strcmp(root->first_child->next_brother->n_type, "FunDec") == 0){
+        RE_type = NULL;
         type* kind = analy_Specifier(root->first_child);
-        analy_FunDec(root->first_child->next_brother, kind);
+        func_node* f = analy_FunDec(root->first_child->next_brother, kind);
         analy_Compst(root->first_child->next_brother->next_brother);
+        if(f != NULL){
+            if(type_equal(f->return_type, &RE_type)){
+                error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+                err->length = root->n_length;
+                err->num = 8;
+                err->next = NULL;
+                sprintf(err->info,"Type mismatched for return.");
+                error2_node_add(err);
+                return NULL;
+            }
+        }
     }
     else if(strcmp(root->first_child->next_brother->n_type, "SEMI") == 0){
         analy_Specifier(root->first_child);
@@ -192,8 +205,13 @@ type* analy_StructSpecifier(struct tree_node* root){
         new_struct->next = NULL;
         new_struct->list = analy_DefList(root->first_child->next_brother->next_brother->next_brother,true);
         if(struct_node_add(new_struct) == false){
-            printf("struct add error\n");
-            assert(0);
+            error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+            err->length = root->n_length;
+            err->num = 16;
+            err->next = NULL;
+            sprintf(err->info,"Duplicated name \"%s\".",new_struct->name);
+            error2_node_add(err);
+            return NULL;
         }
         retype->u.structure = new_struct;
         return retype;
@@ -204,8 +222,13 @@ type* analy_StructSpecifier(struct tree_node* root){
         struct tree_node* tag = root->first_child->next_brother;
         struct_node* current = struct_node_search(tag->first_child->n_value.a) ;
         if(current == NULL){
-            printf("no this struct\n");
-            assert(0);
+            error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+            err->length = root->n_length;
+            err->num = 17;
+            err->next = NULL;
+            sprintf(err->info,"Undefined structure \"%s\".",tag->first_child->n_value.a);
+            error2_node_add(err);
+            return NULL;
         }
         retype->u.structure = current;
         return retype;
@@ -299,7 +322,17 @@ field_list* analy_Dec(struct tree_node* root,type* kind,bool flag){
         field_list* new_fnode = (field_list*)malloc(sizeof(field_list));
         new_fnode->next = NULL;
         new_fnode->var = analy_VarDec(root->first_child, kind);
-        return new_fnode;
+        if(root->first_child->next_brother == NULL)
+            return new_fnode;
+        else{
+            error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+            err->length = root->n_length;
+            err->num = 15;
+            err->next = NULL;
+            sprintf(err->info,"struct field can't initial");
+            error2_node_add(err);
+            return NULL;
+        }
     }
     else{
         analy_VarDec(root->first_child,kind);
@@ -392,7 +425,8 @@ void analy_Stmt(struct tree_node* root){
         analy_Compst(root->first_child);
     }
     else if(strcmp(root->first_child->n_type, "RETURN") == 0){
-        analy_Exp(root->first_child->next_brother);
+        type* re = analy_Exp(root->first_child->next_brother);
+        RE_type = re;
     }
     else if(strcmp(root->first_child->n_type, "IF") == 0){
         struct tree_node* Exp = root->first_child->next_brother->next_brother;
@@ -527,9 +561,13 @@ type* analy_Exp(struct tree_node* root){
     else if(state == 8){
         type* a_type = analy_Exp(root->first_child->next_brother);
         if(a_type->kind != BASIC && a_type->kind != NULL){
-            printf("minus type error\n");
-            assert(0);
-            return a_type;
+            error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+            err->length = root->n_length;
+            err->num = 7;
+            err->next = NULL;
+            sprintf(err->info,"Type mismatched for not");
+            error2_node_add(err);
+            return NULL;
         }
         else
             return a_type;
@@ -540,9 +578,13 @@ type* analy_Exp(struct tree_node* root){
             return a_type;
         }
         else{
-            printf("NOT type error\n");
-            assert(0);
-            return a_type;
+            error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+            err->length = root->n_length;
+            err->num = 7;
+            err->next = NULL;
+            sprintf(err->info,"Type mismatched for not");
+            error2_node_add(err);
+            return NULL;
         }
     }
     else if(state == 10){
@@ -565,34 +607,58 @@ type* analy_Exp(struct tree_node* root){
     }
     else if(state == 11){
         func_node *func = func_node_search(root->first_child->n_value.a);
+        var_node* varf = var_node_search(root->first_child->n_value.a);
         if(func == NULL){
-            error2_node* err = (error2_node*)malloc(sizeof(error2_node));
-            err->length = root->n_length;
-            err->num = 2;
-            err->next = NULL;
-            sprintf(err->info,"Undefined function \"%s\"",root->first_child->n_value.a);
-            error2_node_add(err);
-            return NULL;
+            if(varf == NULL){
+                error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+                err->length = root->n_length;
+                err->num = 2;
+                err->next = NULL;
+                sprintf(err->info,"Undefined function \"%s\"",root->first_child->n_value.a);
+                error2_node_add(err);
+                return NULL;
+            }
+            else{
+                error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+                err->length = root->n_length;
+                err->num = 11;
+                err->next = NULL;
+                sprintf(err->info,"\"%s\" is not a function",root->first_child->n_value.a);
+                error2_node_add(err);
+                return NULL;
+            }
         }
         if(analy_Args(root->first_child->next_brother->next_brother,func->list))
             return func->return_type;
         else{
-            printf("parameter error\n");
-            assert(0);
-            return func->return_type;
+            error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+            err->length = root->n_length;
+            err->num = 9;
+            err->next = NULL;
+            sprintf(err->info,"Function \"%s\" is not applicable for arguments ",func->name);
+            error2_node_add(err);
+            return NULL;
         }
     }
     else if(state == 12){
         type* a_type = analy_Exp(root->first_child);
         type* b_type = analy_Exp(root->first_child->next_brother->next_brother);
         if(a_type->kind != ARRAY && a_type != NULL){
-            printf("id type error(should be array)\n");
-            assert(0);
+            error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+            err->length = root->n_length;
+            err->num = 10;
+            err->next = NULL;
+            sprintf(err->info,"it is not an array");
+            error2_node_add(err);
             return NULL;
         }
         if((b_type->kind != BASIC || b_type->u.basic != 1) && b_type->kind != NULL){//[]中的数必须是int类型的。
-            printf("[type] error\n");
-            assert(0);
+            error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+            err->length = root->n_length;
+            err->num = 12;
+            err->next = NULL;
+            sprintf(err->info,"it is not an integer.");
+            error2_node_add(err);
             return NULL;
         }
         return a_type->u.array.elem;
@@ -600,8 +666,13 @@ type* analy_Exp(struct tree_node* root){
     else if(state == 13){
         type* a_type = analy_Exp(root->first_child);
         if(a_type->kind != STRUCTURE){
-            printf("id type error(should be structure)");
-            assert(0);
+            error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+            err->length = root->n_length;
+            err->num = 13;
+            err->next = NULL;
+            sprintf(err->info,"Illegal use of \".\".");
+            error2_node_add(err);
+            return NULL;
         }
         field_list* fp = a_type->u.structure->list;
         while(fp != NULL){
@@ -609,8 +680,13 @@ type* analy_Exp(struct tree_node* root){
                 return fp->var->kind;
             fp = fp->next;
         }
-        printf("structure hasn't this field\n");
-        assert(0);
+        error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+        err->length = root->n_length;
+        err->num = 14;
+        err->next = NULL;
+        sprintf(err->info,"Non-existent field");
+        error2_node_add(err);
+        return NULL;
     }
     else if(state == 14){
         var_node *var = var_node_search(root->first_child->n_value.a);
