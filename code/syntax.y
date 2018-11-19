@@ -65,6 +65,11 @@ ExtDef : Specifier ExtDecList SEMI{
         add_sibling($1, $2);
         add_sibling($2, $3);
     }
+    | Specifier error{
+        $$ = create_node("ExtDef", @$.first_line, (union n_un)0, false);
+        error_line =  @$.last_line;
+        yyerror("error ExtDef");
+    }
 
 ExtDecList : VarDec{
         $$ = create_node("ExtDecList", @$.first_line, (union n_un)0, false);

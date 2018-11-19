@@ -18,12 +18,14 @@ int main(int argc, char** argv){
     }
     #endif
     #ifdef __LAB2_ENABLE
-    analy_Program(root);
-    print_error2s();
-    #ifdef __DEBUG
-    print_varlist();
-    print_structlist();
-    print_funclist();
+    if(ProFlag == true){
+        analy_Program(root);
+        print_error2s();
+        #ifdef __DEBUG
+        print_varlist();
+        print_structlist();
+        print_funclist();
+    }
     #endif
     #endif
     return 0;

@@ -4,6 +4,7 @@
 type INT_type = {BASIC, 1};
 type FLOAT_type = {BASIC, 2};
 type* RE_type = NULL;
+int re_length = 0;
 
 void analy_ExtDefList(struct tree_node* root);
 void analy_ExtDef(struct tree_node* root);
@@ -67,7 +68,7 @@ void analy_ExtDef(struct tree_node* root){
         if(f != NULL){
             if(type_equal(f->return_type, RE_type) == false){
                 error2_node* err = (error2_node*)malloc(sizeof(error2_node));
-                err->length = root->n_length;
+                err->length = re_length;
                 err->num = 8;
                 err->next = NULL;
                 sprintf(err->info,"Type mismatched for return.");
@@ -444,12 +445,18 @@ void analy_Stmt(struct tree_node* root){
     else if(strcmp(root->first_child->n_type, "RETURN") == 0){
         type* re = analy_Exp(root->first_child->next_brother);
         RE_type = re;
+        re_length = root->n_length;
     }
     else if(strcmp(root->first_child->n_type, "IF") == 0){
         struct tree_node* Exp = root->first_child->next_brother->next_brother;
         if(analy_Exp(Exp) != &INT_type){
-            printf("IF type error\n");
-            assert(0);
+            error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+            err->length = root->n_length;
+            err->next = NULL;
+            err->num = 7;
+            sprintf(err->info,"IF's condition must be int");
+            error2_node_add(err);
+            return NULL;
         }
         struct tree_node* TStmt = Exp->next_brother->next_brother;
         analy_Stmt(TStmt);
@@ -461,8 +468,13 @@ void analy_Stmt(struct tree_node* root){
     else{
         struct tree_node* Exp = root->first_child->next_brother->next_brother;
         if(analy_Exp(Exp) != &INT_type){
-            printf("while type error\n");
-            assert(0);
+            error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+            err->length = root->n_length;
+            err->next = NULL;
+            err->num = 7;
+            sprintf(err->info,"While's condition must be int");
+            error2_node_add(err);
+            return NULL;
         }
         struct tree_node* TStmt = Exp->next_brother->next_brother;
         analy_Stmt(TStmt);
@@ -543,11 +555,10 @@ type* analy_Exp(struct tree_node* root){
                         err->num = 7;
                         sprintf(err->info,"Type mismatched for operands");
                         error2_node_add(err);
-                        return NULL;
+                        return &INT_type;
                     }
                 }
-                else
-                    return &INT_type;
+                return &INT_type;
             }
             else if(state == 5 && state == 6){
                 if(a_type == NULL)
@@ -636,8 +647,12 @@ type* analy_Exp(struct tree_node* root){
             return NULL;
         }
         if(func->list != NULL){     //这个func应该是没有参数的。
-            printf("parameter error\n");
-            assert(0);
+            error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+            err->length = root->n_length;
+            err->num = 9;
+            err->next = NULL;
+            sprintf(err->info,"func \"%s\" parameter num worry",root->first_child->n_value.a);
+            error2_node_add(err);
             return func->return_type;
         }
         return func->return_type;
