@@ -3,9 +3,9 @@
 #include <stdbool.h>
 #include <malloc.h>
 #include <assert.h>
-//#define __LAB1_ENABLE
+#define __LAB1_ENABLE
 #define __LAB2_ENABLE
-//#define __DEBUG
+#define __DEBUG
 
 
 /*lab1 syntax.y*/

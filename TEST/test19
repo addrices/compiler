@@ -1,0 +1,16 @@
+struct a{
+    int b;
+    float f;
+};
+
+struct c{
+    struct a a1;
+    int d;
+};
+
+int main(){
+    struct c c1;
+    int p;
+    p = c1.a1.f + c.d;
+    return 1.2;
+}

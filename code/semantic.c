@@ -334,7 +334,7 @@ sfield_list* analy_Dec(struct tree_node* root,type* kind,bool flag){
         sfield_list* new_fnode = (sfield_list*)malloc(sizeof(sfield_list));
         new_fnode->next = NULL;
         var_node* var = analy_VarDec(root->first_child, kind, flag);
-        strcmp(new_fnode->name,var->name);
+        strcpy(new_fnode->name,var->name);
         new_fnode->kind = var->kind;
         if(root->first_child->next_brother == NULL)
             return new_fnode;
@@ -702,13 +702,18 @@ type* analy_Exp(struct tree_node* root){
     }
     else if(state == 13){
         type* a_type = analy_Exp(root->first_child);
-        if(a_type->kind != STRUCTURE){
-            error2_node* err = (error2_node*)malloc(sizeof(error2_node));
-            err->length = root->n_length;
-            err->num = 13;
-            err->next = NULL;
-            sprintf(err->info,"Illegal use of \".\".");
-            error2_node_add(err);
+        if(a_type != NULL){
+            if(a_type->kind != STRUCTURE){
+                error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+                err->length = root->n_length;
+                err->num = 13;
+                err->next = NULL;
+                sprintf(err->info,"Illegal use of \".\".");
+                error2_node_add(err);
+                return NULL;
+            }
+        }
+        else{
             return NULL;
         }
         sfield_list* fp = a_type->u.structure->list;

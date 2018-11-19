@@ -1,5 +1,6 @@
 #include "m.h"
 
+#ifdef __LAB2_ENABLE
 func_node* FUNC_LIST[__FUNC_HASH_NUM];
 var_node* VAR_LIST[__FUNC_HASH_NUM];
 struct_node* STRUCT_LIST[__FUNC_HASH_NUM];
@@ -203,4 +204,5 @@ void print_varlist(){
         }
     }
 }
+#endif
 #endif
