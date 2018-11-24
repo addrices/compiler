@@ -25,8 +25,8 @@ int main(int argc, char** argv){
         print_varlist();
         print_structlist();
         print_funclist();
+        #endif
     }
-    #endif
     #endif
     return 0;
 }

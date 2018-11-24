@@ -66,6 +66,14 @@ void analy_ExtDef(struct tree_node* root){
         func_node* f = analy_FunDec(root->first_child->next_brother, kind);
         analy_Compst(root->first_child->next_brother->next_brother);
         if(f != NULL){
+            if(RE_type == NULL){
+                error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+                err->length = root->n_length;
+                err->num = 8;
+                err->next = NULL;
+                sprintf(err->info,"no return stmt.");
+                error2_node_add(err);
+            }
             if(type_equal(f->return_type, RE_type) == false){
                 error2_node* err = (error2_node*)malloc(sizeof(error2_node));
                 err->length = re_length;
@@ -456,7 +464,6 @@ void analy_Stmt(struct tree_node* root){
             err->num = 7;
             sprintf(err->info,"IF's condition must be int");
             error2_node_add(err);
-            return NULL;
         }
         struct tree_node* TStmt = Exp->next_brother->next_brother;
         analy_Stmt(TStmt);
@@ -474,7 +481,6 @@ void analy_Stmt(struct tree_node* root){
             err->num = 7;
             sprintf(err->info,"While's condition must be int");
             error2_node_add(err);
-            return NULL;
         }
         struct tree_node* TStmt = Exp->next_brother->next_brother;
         analy_Stmt(TStmt);
@@ -529,34 +535,31 @@ type* analy_Exp(struct tree_node* root){
         type* b_type = analy_Exp(b);
         if(type_equal(a_type,b_type) == true){
             if(state >= 0 && state <= 3){
-                if(a_type != NULL){
-                    if(a_type->kind != BASIC){
-                        error2_node* err = (error2_node*)malloc(sizeof(error2_node));
-                        err->length = root->n_length;
-                        err->next = NULL;
-                        err->num = 7;
-                        sprintf(err->info,"Type mismatched for operands");
-                        error2_node_add(err);
-                        return NULL;
-                    }
-                    else
-                        return a_type;
+                if(a_type == NULL)
+                    return b_type;
+                if(a_type->kind != BASIC){
+                    error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+                    err->length = root->n_length;
+                    err->next = NULL;
+                    err->num = 7;
+                    sprintf(err->info,"Type mismatched for operands");
+                    error2_node_add(err);
+                    return NULL;
                 }
-                else{
-                        return b_type;
-                }
+                else
+                    return a_type;
             } 
             else if(state == 4){
-                if(a_type != NULL){
-                    if(a_type->kind != BASIC){
-                        error2_node* err = (error2_node*)malloc(sizeof(error2_node));
-                        err->length = root->n_length;
-                        err->next = NULL;
-                        err->num = 7;
-                        sprintf(err->info,"Type mismatched for operands");
-                        error2_node_add(err);
-                        return &INT_type;
-                    }
+                if(a_type == NULL)
+                    return &INT_type;
+                if(a_type->kind != BASIC){
+                    error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+                    err->length = root->n_length;
+                    err->next = NULL;
+                    err->num = 7;
+                    sprintf(err->info,"Type mismatched for operands");
+                    error2_node_add(err);
+                    return &INT_type;
                 }
                 return &INT_type;
             }
@@ -608,7 +611,9 @@ type* analy_Exp(struct tree_node* root){
     }
     else if(state == 8){
         type* a_type = analy_Exp(root->first_child->next_brother);
-        if(a_type->kind != BASIC && a_type != NULL){
+        if(a_type != NULL)
+            return NULL;
+        if(a_type->kind != BASIC){
             error2_node* err = (error2_node*)malloc(sizeof(error2_node));
             err->length = root->n_length;
             err->num = 7;
@@ -617,12 +622,13 @@ type* analy_Exp(struct tree_node* root){
             error2_node_add(err);
             return NULL;
         }
-        else
-            return a_type;
+        return a_type;
     }
     else if(state == 9){
         type* a_type = analy_Exp(root->first_child->next_brother);
-        if((a_type->kind == BASIC && a_type->u.basic == 1) || a_type == NULL){
+        if(a_type == NULL)
+            return NULL;
+        if(a_type->kind == BASIC && a_type->u.basic == 1){
             return a_type;
         }
         else{
@@ -695,7 +701,9 @@ type* analy_Exp(struct tree_node* root){
     else if(state == 12){
         type* a_type = analy_Exp(root->first_child);
         type* b_type = analy_Exp(root->first_child->next_brother->next_brother);
-        if(a_type->kind != ARRAY && a_type != NULL){
+        if(a_type == NULL)
+            return NULL;
+        if(a_type->kind != ARRAY){
             error2_node* err = (error2_node*)malloc(sizeof(error2_node));
             err->length = root->n_length;
             err->num = 10;
@@ -704,7 +712,9 @@ type* analy_Exp(struct tree_node* root){
             error2_node_add(err);
             return NULL;
         }
-        if((b_type->kind != BASIC || b_type->u.basic != 1) && b_type != NULL){//[]中的数必须是int类型的。
+        if(b_type == NULL)
+            return NULL;
+        if(b_type->kind != BASIC || b_type->u.basic != 1){//[]中的数必须是int类型的。
             error2_node* err = (error2_node*)malloc(sizeof(error2_node));
             err->length = root->n_length;
             err->num = 12;
@@ -717,18 +727,15 @@ type* analy_Exp(struct tree_node* root){
     }
     else if(state == 13){
         type* a_type = analy_Exp(root->first_child);
-        if(a_type != NULL){
-            if(a_type->kind != STRUCTURE){
-                error2_node* err = (error2_node*)malloc(sizeof(error2_node));
-                err->length = root->n_length;
-                err->num = 13;
-                err->next = NULL;
-                sprintf(err->info,"Illegal use of \".\".");
-                error2_node_add(err);
-                return NULL;
-            }
-        }
-        else{
+        if(a_type == NULL)
+            return NULL;
+        if(a_type->kind != STRUCTURE){
+            error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+            err->length = root->n_length;
+            err->num = 13;
+            err->next = NULL;
+            sprintf(err->info,"Illegal use of \".\".");
+            error2_node_add(err);
             return NULL;
         }
         sfield_list* fp = a_type->u.structure->list;
@@ -747,6 +754,16 @@ type* analy_Exp(struct tree_node* root){
     }
     else if(state == 14){
         var_node *var = var_node_search(root->first_child->n_value.a);
+        struct_node *s = struct_node_search(root->first_child->n_value.a);
+        if(s != NULL){
+            error2_node* err = (error2_node*)malloc(sizeof(error2_node));
+            err->length = root->n_length;
+            err->num = 3;
+            err->next = NULL;
+            sprintf(err->info,"struct name redefine\"%s\"",root->first_child->n_value.a);
+            error2_node_add(err);
+            return NULL;
+        }
         if(var == NULL){
             error2_node* err = (error2_node*)malloc(sizeof(error2_node));
             err->length = root->n_length;
