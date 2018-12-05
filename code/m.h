@@ -6,6 +6,7 @@
 //#define __LAB1_ENABLE
 #define __LAB2_ENABLE
 //#define __DEBUG
+#define __LAB3_ENABLE
 
 
 /*lab1 syntax.y*/
@@ -99,6 +100,10 @@ void print_varlist();
 void print_structlist();
 void print_funclist();
 #endif
+#endif
+
+#ifdef __LAB3_ENABLE
+void init_symbol();
 #endif
 extern struct tree_node *root;
 void read_tree(struct tree_node* root_node,int i);

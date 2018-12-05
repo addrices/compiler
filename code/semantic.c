@@ -790,7 +790,7 @@ type* analy_Exp(struct tree_node* root){
 bool analy_Args(struct tree_node* root, field_list* flist){
     struct tree_node* exp =  root->first_child;
     type* exp_type = analy_Exp(exp);
-    if(flist != NULL)
+    if(flist == NULL)
         return false;
     if(exp->next_brother == NULL){        //arg -> exp
         if(flist->next != NULL)
