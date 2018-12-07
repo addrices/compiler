@@ -503,31 +503,7 @@ type* analy_Exp(struct tree_node* root){
 #ifdef __DEBUG
     printf("%s\n",root->n_type);
 #endif
-    struct tree_node* op = root->first_child->next_brother;
-    int state = 0;
-    if(op != NULL){
-        if(strcmp(op->n_type,"ADD") == 0) state = 0;
-        else if(strcmp(op->n_type, "MINUS") == 0) state = 1;
-        else if(strcmp(op->n_type, "STAR") == 0) state = 2;
-        else if(strcmp(op->n_type, "DIV") == 0) state = 3;
-        else if(strcmp(op->n_type, "RELOP") == 0) state = 4; 
-        else if(strcmp(op->n_type, "AND") == 0) state = 5;
-        else if(strcmp(op->n_type, "OR") == 0) state = 6;
-        else if(strcmp(op->n_type, "ASSIGNOP") == 0) state = 7;
-        else if(strcmp(root->first_child->next_brother->n_type, "LP") == 0){
-            if(strcmp(root->first_child->next_brother->next_brother->n_type, "RP") == 0)
-                state = 10;
-            else
-                state = 11;
-        }
-        else if(strcmp(root->first_child->next_brother->n_type, "LB") == 0) state = 12;
-        else if(strcmp(root->first_child->next_brother->n_type, "DOT") == 0) state = 13;
-    }
-    else if(strcmp(root->first_child->n_type, "MINUS") == 0) state = 8;
-    else if(strcmp(root->first_child->n_type, "NOT") == 0) state = 9;
-    else if(strcmp(root->first_child->n_type, "ID") == 0) state = 14;
-    else if(strcmp(root->first_child->n_type, "INT") == 0) state = 15;
-    else if(strcmp(root->first_child->n_type, "FLOAT") == 0) state = 16;
+    int state = getexp_state(root);
     if(state >= 0 && state <= 7){
         struct tree_node* a = root->first_child;
         struct tree_node* b = a->next_brother->next_brother;
@@ -587,7 +563,7 @@ type* analy_Exp(struct tree_node* root){
                     sprintf(err->info,"The left-hand side of an assignment must be a variable");
                     error2_node_add(err);
                     return NULL;
-                }
+                }                                                   //TODO Problem
                 if(a_type == NULL)
                     return b_type;
                 else
@@ -611,14 +587,14 @@ type* analy_Exp(struct tree_node* root){
     }
     else if(state == 8){
         type* a_type = analy_Exp(root->first_child->next_brother);
-        if(a_type != NULL)
+        if(a_type == NULL)
             return NULL;
         if(a_type->kind != BASIC){
             error2_node* err = (error2_node*)malloc(sizeof(error2_node));
             err->length = root->n_length;
             err->num = 7;
             err->next = NULL;
-            sprintf(err->info,"Type mismatched for not");
+            sprintf(err->info,"Type mismatched for minus");
             error2_node_add(err);
             return NULL;
         }
@@ -842,6 +818,35 @@ bool type_equal(type* a_type, type* b_type){
         }
     }
     return false;
+}
+
+int getexp_state(struct tree_node *root){
+    int state = 0;
+    struct tree_node* op = root->first_child->next_brother;
+    if(op != NULL){
+        if(strcmp(op->n_type,"PLUS") == 0) state = 0;
+        else if(strcmp(op->n_type, "MINUS") == 0) state = 1;
+        else if(strcmp(op->n_type, "STAR") == 0) state = 2;
+        else if(strcmp(op->n_type, "DIV") == 0) state = 3;
+        else if(strcmp(op->n_type, "RELOP") == 0) state = 4; 
+        else if(strcmp(op->n_type, "AND") == 0) state = 5;
+        else if(strcmp(op->n_type, "OR") == 0) state = 6;
+        else if(strcmp(op->n_type, "ASSIGNOP") == 0) state = 7;
+        else if(strcmp(root->first_child->next_brother->n_type, "LP") == 0){
+            if(strcmp(root->first_child->next_brother->next_brother->n_type, "RP") == 0)
+                state = 10;
+            else
+                state = 11;
+        }
+        else if(strcmp(root->first_child->next_brother->n_type, "LB") == 0) state = 12;
+        else if(strcmp(root->first_child->next_brother->n_type, "DOT") == 0) state = 13;
+        else if(strcmp(root->first_child->n_type, "MINUS") == 0) state = 8;
+        else if(strcmp(root->first_child->n_type, "NOT") == 0) state = 9;
+    }
+    else if(strcmp(root->first_child->n_type, "ID") == 0) state = 14;
+    else if(strcmp(root->first_child->n_type, "INT") == 0) state = 15;
+    else if(strcmp(root->first_child->n_type, "FLOAT") == 0) state = 16;
+    return state;
 }
 
 #endif

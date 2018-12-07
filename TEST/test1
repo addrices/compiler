@@ -1,7 +1,7 @@
 int main()
 {
     int i = 0;
-    i = read();
-    write(i);
+    int a = 0;
+    i = a = 0;
     return 0;
 }

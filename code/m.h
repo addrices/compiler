@@ -94,6 +94,7 @@ bool struct_node_add(struct_node *current);
 struct_node* struct_node_search(char *name);
 void print_error2s();
 void error2_node_add(error2_node* current);
+int getexp_state(struct tree_node *root);
 
 #ifdef __DEBUG
 void print_varlist();
@@ -104,6 +105,38 @@ void print_funclist();
 
 #ifdef __LAB3_ENABLE
 void init_symbol();
+typedef struct operand_ operand;
+typedef struct inter_code_ inter_code;
+typedef struct inter_code_page_ inter_code_page;
+//extern inter_codes* begin_intercode;
+//extern inter_codes* end_intercode;
+struct operand_{
+    enum {LABEL_op, FUNC_op, VARIABLE_op, CONSTANT_op, ADDRESS_op} kind;
+    char name[16];
+};
+struct inter_code_{
+    enum {LABEL_ic, FUNC_ic, ASSIGN_ic, ADD_ic, SUB_ic, MUL_ic, DIV_ic, GETADDR_ic, GETVALUE_ic, ADDRASS_ic, GOTO_ic, IF_ic, RETURN_ic, DEC_ic, ARG_ic, CALL_ic, PARAM_ic, READ_ic, WRITE_ic} kind;
+    union {
+        struct {operand src;} op1;
+        struct {operand right, left;} op2;
+        struct {operand result, left, right;} op3;
+        struct {enum {NE,EQ,LT,LE,GT,GE} relop; operand left, right, dest;} branch;
+        struct {int size; operand dest;} dec;
+    };
+    inter_code* pre;
+    inter_code* next;
+};
+struct inter_code_page_{
+    int num;
+    inter_code* begin;
+    inter_code* end;
+};
+//void intercode_add(inter_codes* new_code);
+void intercode_print(FILE* f);
+inter_code_page* intercode_ppmerge(inter_code_page* forward, inter_code_page* behind);
+inter_code_page* intercode_p1merge(inter_code_page* forward, inter_code* behind);
+inter_code_page* intercode_1pmerge(inter_code* forward, inter_code_page* behind);
+inter_code_page* intercode_11merge(inter_code* forward, inter_code* behind);
 #endif
 extern struct tree_node *root;
 void read_tree(struct tree_node* root_node,int i);

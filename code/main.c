@@ -5,7 +5,9 @@ bool ProFlag = true;
 int main(int argc, char** argv){
     if (argc <= 1) return 1;
     FILE* f = fopen(argv[1], "r");
+    #ifdef __LAB3_ENABLE
     init_symbol();
+    #endif
     if (!f)
     {
         perror(argv[1]);
@@ -28,6 +30,17 @@ int main(int argc, char** argv){
         print_funclist();
         #endif
     }
+    #endif
+
+    #ifdef __LAB3_ENABLE
+    FILE* w = fopen(argv[2], "2");
+    if (!w)
+    {
+        perror(argv[2]);
+        return 1;
+    }
+    intercode_print(w);
+    fclose(w);
     #endif
     return 0;
 }
