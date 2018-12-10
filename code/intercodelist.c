@@ -102,4 +102,12 @@ inter_code_page* intercode_11merge(inter_code* forward, inter_code* behind){
     new_page->num = 2;
     return new_page;
 }
+
+inter_code_page* intercode_1merge(inter_code* forward){
+    inter_code_page* new_page = (inter_code_page*)malloc(sizeof(inter_code_page));
+    new_page->begin = forward;
+    new_page->end = forward;
+    new_page->num = 1;
+    return new_page;
+}
 #endif

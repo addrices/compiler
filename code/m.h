@@ -137,6 +137,9 @@ inter_code_page* intercode_ppmerge(inter_code_page* forward, inter_code_page* be
 inter_code_page* intercode_p1merge(inter_code_page* forward, inter_code* behind);
 inter_code_page* intercode_1pmerge(inter_code* forward, inter_code_page* behind);
 inter_code_page* intercode_11merge(inter_code* forward, inter_code* behind);
+inter_code_page* intercode_1merge(inter_code* forward);
+inter_code_page* translate_stmt(struct tree_node* root);
+inter_code_page* translate_exp(struct tree_node* root, operand* place);
 #endif
 extern struct tree_node *root;
 void read_tree(struct tree_node* root_node,int i);
