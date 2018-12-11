@@ -33,13 +33,14 @@ int main(int argc, char** argv){
     #endif
 
     #ifdef __LAB3_ENABLE
-    FILE* w = fopen(argv[2], "2");
+    FILE* w = fopen(argv[2], "w");
     if (!w)
     {
         perror(argv[2]);
         return 1;
     }
-    intercode_print(w);
+    inter_code_page* icode = translate(root);
+    intercode_print(w, icode);
     fclose(w);
     #endif
     return 0;

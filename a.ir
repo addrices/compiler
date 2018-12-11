@@ -1,0 +1,4 @@
+FUNCTION main :
+ := #1
+e5 := #0
+RETURN e5

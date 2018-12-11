@@ -108,6 +108,7 @@ void init_symbol();
 typedef struct operand_ operand;
 typedef struct inter_code_ inter_code;
 typedef struct inter_code_page_ inter_code_page;
+typedef struct arg_node_ arg_node;
 //extern inter_codes* begin_intercode;
 //extern inter_codes* end_intercode;
 struct operand_{
@@ -131,15 +132,20 @@ struct inter_code_page_{
     inter_code* begin;
     inter_code* end;
 };
+struct arg_node_{
+    operand parameter;
+    arg_node* next;
+    arg_node* pre;
+};
+
 //void intercode_add(inter_codes* new_code);
-void intercode_print(FILE* f);
+void intercode_print(FILE* f,inter_code_page* icode);
 inter_code_page* intercode_ppmerge(inter_code_page* forward, inter_code_page* behind);
 inter_code_page* intercode_p1merge(inter_code_page* forward, inter_code* behind);
 inter_code_page* intercode_1pmerge(inter_code* forward, inter_code_page* behind);
 inter_code_page* intercode_11merge(inter_code* forward, inter_code* behind);
 inter_code_page* intercode_1merge(inter_code* forward);
-inter_code_page* translate_stmt(struct tree_node* root);
-inter_code_page* translate_exp(struct tree_node* root, operand* place);
+inter_code_page* translate(struct tree_node* root);
 #endif
 extern struct tree_node *root;
 void read_tree(struct tree_node* root_node,int i);
