@@ -92,7 +92,7 @@ bool var_node_add(var_node *current);
 var_node* var_node_search(char *name);
 bool struct_node_add(struct_node *current);
 struct_node* struct_node_search(char *name);
-void print_error2s();
+bool print_error2s();
 void error2_node_add(error2_node* current);
 int getexp_state(struct tree_node *root);
 

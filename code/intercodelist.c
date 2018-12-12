@@ -49,13 +49,13 @@ void intercode_print(FILE* f,inter_code_page* icode){
         else if(current->kind == ASSIGN_ic)
             fprintf(f, "%s := %s\n", current->op2.left.name, current->op2.right.name);
         else if(current->kind == ADD_ic)
-            fprintf(f, "%s := %s + %s\n", current->op3.result.name, current->op3.left.name, current->op3.result.name);
+            fprintf(f, "%s := %s + %s\n", current->op3.result.name, current->op3.left.name, current->op3.right.name);
         else if(current->kind == SUB_ic)
-            fprintf(f, "%s := %s - %s\n", current->op3.result.name, current->op3.left.name, current->op3.result.name);
+            fprintf(f, "%s := %s - %s\n", current->op3.result.name, current->op3.left.name, current->op3.right.name);
         else if(current->kind == MUL_ic)
-            fprintf(f, "%s := %s * %s\n", current->op3.result.name, current->op3.left.name, current->op3.result.name);
+            fprintf(f, "%s := %s * %s\n", current->op3.result.name, current->op3.left.name, current->op3.right.name);
         else if(current->kind == DIV_ic)
-            fprintf(f, "%s := %s / %s\n", current->op3.result.name, current->op3.left.name, current->op3.result.name);
+            fprintf(f, "%s := %s / %s\n", current->op3.result.name, current->op3.left.name, current->op3.right.name);
         else if(current->kind == GETADDR_ic)
             fprintf(f, "%s := &%s\n", current->op2.left.name, current->op2.right.name);
         else if(current->kind == GETVALUE_ic)
@@ -63,7 +63,7 @@ void intercode_print(FILE* f,inter_code_page* icode){
         else if(current->kind == ADDRASS_ic)
             fprintf(f, "*%s := %s\n", current->op2.left.name, current->op2.right.name);
         else if(current->kind == GOTO_ic)
-            fprintf(f, "*GOTO %s\n", current->op1.src.name);
+            fprintf(f, "GOTO %s\n", current->op1.src.name);
         else if(current->kind == IF_ic){
             switch(current->branch.relop){
                 case NE: fprintf(f, "IF %s != %s GOTO %s\n", current->branch.left.name, current->branch.right.name, current->branch.dest.name); break;
@@ -89,6 +89,8 @@ void intercode_print(FILE* f,inter_code_page* icode){
             fprintf(f, "READ %s\n", current->op1.src.name);
         else if(current->kind == WRITE_ic)
             fprintf(f, "WRITE %s\n", current->op1.src.name);
+        else
+            assert(0);
         current = current->next;
     }
     return;
@@ -130,6 +132,7 @@ inter_code_page* intercode_p1merge(inter_code_page* forward, inter_code* behind)
     forward->end->next = behind;
     behind->pre = forward->end;
     forward->num++;
+    forward->end = behind;
     return forward;
 }
 
@@ -150,6 +153,7 @@ inter_code_page* intercode_1pmerge(inter_code* forward, inter_code_page* behind)
     behind->begin->pre = forward;
     forward->next = behind->begin;
     behind->num++;
+    behind->begin = forward;
     return behind;
 }
 

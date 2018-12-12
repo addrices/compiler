@@ -12,7 +12,9 @@ inter_code_page* translate_compst(struct tree_node* root);
 inter_code_page* translate_stmtlist(struct tree_node* root);
 inter_code_page* translate(struct tree_node* root);
 inter_code_page* translate_func(struct tree_node* root);
-void translate_varlist(struct tree_node* root, arg_node* arg_list);
+inter_code_page* translate_deflist(struct tree_node* root);
+inter_code_page* translate_declist(struct tree_node* root);
+inter_code_page* translate_dec(struct tree_node* root);
 
 inter_code_page* translate(struct tree_node* root){
     if(root == NULL){
@@ -42,6 +44,7 @@ inter_code* new_label(){            //新建一个label的code结点
     new_label->kind = LABEL_ic;
     new_label->op1.src.kind = LABEL_op;
     sprintf(new_label->op1.src.name, "%d", label_num); label_num++;
+    return new_label;
 }
 
 /*翻译Exp，返回中间代码
@@ -49,7 +52,7 @@ inter_code* new_label(){            //新建一个label的code结点
 |   exp plus exp
 |   exp minus exp | exp star exp
 |   exp div exp  | LP exp RP
-|   minus exp   |
+|   minus exp TODO:  |
 |   id lp args rp | id lp rp //
 |   exp lb exp rb | exp dot id
 |   id! | int!
@@ -83,23 +86,29 @@ inter_code_page* translate_exp(struct tree_node* root, operand* place){
         code1->op2.left = *place;
         code1->op2.right.kind = VARIABLE_op;
         sprintf(code1->op2.right.name,"%s",var->name);
-        return NULL;
+        return intercode_1merge(code1);
     }
-    else if(state == 7){        //assign    a = b
-        if(place == NULL)
+    else if(state == 7){        //assign    a = b   TODO: now a must be a id
+        int a_state = getexp_state(root->first_child);      //第一项只能是id
+        if(a_state != 14)
             assert(0);
-        inter_code* code3 = (inter_code*)malloc(sizeof(inter_code)); code3->pre = NULL; code3->next = NULL;
-        sprintf(code3->op2.left.name, "e%d",name_num);name_num++;
-        sprintf(code3->op2.right.name, "e%d",name_num);name_num++;
-        inter_code_page* code1 = translate_exp(root->first_child, &code3->op2.left);
-        //如果这个变量可以用常量或者id直接表示会被替换成这个。
-        inter_code_page* code2 = translate_exp(root->first_child->next_brother->next_brother, &code3->op2.right); //处理exp2 
-        inter_code_page* codef = intercode_ppmerge(code1,code2);
+        inter_code* code2 = (inter_code*)malloc(sizeof(inter_code)); code2->pre = NULL; code2->next = NULL;
+        code2->op2.left.kind = VARIABLE_op;                 //code2 a = t1
+        strcpy(code2->op2.left.name, root->first_child->first_child->n_value.a);
+        code2->op2.right.kind = VARIABLE_op;
+        sprintf(code2->op2.right.name, "e%d",name_num);name_num++;
+        inter_code_page* code1 = translate_exp(root->first_child->next_brother->next_brother, &code2->op2.right); //处理exp2 
+        code2->kind = ASSIGN_ic;
+        inter_code_page* codef = intercode_p1merge(code1, code2);
         if(place != NULL){
-            *place = code3->op2.left;
+            inter_code* code3 = (inter_code*)malloc(sizeof(inter_code)); code3->pre = NULL; code3->next = NULL;
+            code3->kind = ASSIGN_ic;
+            code3->op2.left = *place;
+            code3->op2.right = code2->op2.left;
+            return intercode_p1merge(codef,code3);
         }
-        code3->kind = ASSIGN_ic;
-        return intercode_p1merge(codef,code3);
+        else 
+            return codef;
     }
     else if((state >= 0 && state <= 3) || (state >= 5 && state <= 6)){      //+-*/   &|非法
         if(place == NULL)
@@ -107,8 +116,8 @@ inter_code_page* translate_exp(struct tree_node* root, operand* place){
         inter_code* code3 = (inter_code*)malloc(sizeof(inter_code)); code3->pre = NULL; code3->next = NULL;
         sprintf(code3->op3.left.name, "e%d",name_num);name_num++;
         sprintf(code3->op3.right.name, "e%d",name_num);name_num++;
-        inter_code_page* code1 = translate_exp(root->first_child, &code3->op2.left);
-        inter_code_page* code2 = translate_exp(root->first_child->next_brother->next_brother, &code3->op2.right); //处理exp2 
+        inter_code_page* code1 = translate_exp(root->first_child, &code3->op3.left);
+        inter_code_page* code2 = translate_exp(root->first_child->next_brother->next_brother, &code3->op3.right); //处理exp2 
         inter_code_page* codef = intercode_ppmerge(code1,code2);
         switch(state){
             case 0: code3->kind = ADD_ic; break;
@@ -188,23 +197,19 @@ inter_code_page* translate_exp(struct tree_node* root, operand* place){
             return intercode_p1merge(code1, write_code);
         }
         else{
-            inter_code_page* Pas = NULL;
+            inter_code_page* Pas = code1;
             arg_node* current = arg_list->next;
             while(current != NULL){
                 inter_code* arg_code = (inter_code*)malloc(sizeof(inter_code));arg_code->pre = NULL; arg_code->next = NULL;
-                arg_code->kind = PARAM_ic;
+                arg_code->kind = ARG_ic;
                 arg_code->op1.src = current->parameter;
-                if(Pas = NULL){
-                    Pas = intercode_1merge(arg_code);
-                }
-                else{
-                    Pas = intercode_p1merge(Pas, arg_code);
-                }
+                Pas = intercode_p1merge(Pas, arg_code);
                 current = current->next;
             }
             inter_code* call_code = (inter_code*)malloc(sizeof(inter_code));call_code->pre = NULL; call_code->next = NULL;
             call_code->kind = CALL_ic;
-            call_code->op1.src = *place;
+            call_code->op2.left = *place;
+            strcpy(call_code->op2.right.name, func->name);
             return intercode_p1merge(Pas,call_code);
         }
     }
@@ -221,12 +226,12 @@ inter_code_page* translate_exp(struct tree_node* root, operand* place){
 */
 inter_code_page* translate_stmt(struct tree_node* root){
     if(strcmp(root->first_child->n_type, "Exp") == 0){
-        operand op;
-        op.kind = VARIABLE_op;
-        sprintf(op.name, "e%d", name_num); name_num++;
-        return translate_exp(root->first_child,&op);
+        //operand op;
+        //op.kind = VARIABLE_op;
+        //sprintf(op.name, "e%d", name_num); name_num++;
+        return translate_exp(root->first_child,NULL);
     }
-    else if(strcmp(root->first_child->n_type, "Compst") == 0){
+    else if(strcmp(root->first_child->n_type, "CompSt") == 0){
         return translate_compst(root->first_child);
     }
     else if(strcmp(root->first_child->n_type, "RETURN") == 0){
@@ -359,7 +364,7 @@ inter_code_page* translate_cond(struct tree_node* root, inter_code* label_true, 
         //=============================
         inter_code* label1 = new_label();
         inter_code_page* code1 = translate_cond(root->first_child, label1, label_false);
-        inter_code_page* code2 = translate_cond(root->first_child, label_true, label_false);
+        inter_code_page* code2 = translate_cond(root->first_child->next_brother->next_brother, label_true, label_false);
         inter_code_page* codef = intercode_p1merge(code1, label1);
         return intercode_ppmerge(codef,code2);
     }
@@ -404,7 +409,7 @@ inter_code_page* translate_args(struct tree_node* root, arg_node* arg_list){
     if(exp->next_brother == NULL){
         arg_node* new_arg = (arg_node*)malloc(sizeof(arg_node));new_arg->next = NULL; new_arg->pre = NULL;
         new_arg->parameter.kind = FUNC_op;
-        sprintf(new_arg->parameter.name, "f%d", func_num);
+        sprintf(new_arg->parameter.name, "f%d", func_num);func_num++;
         inter_code_page* code1 = translate_exp(exp, &new_arg->parameter);
         arg_node* current = arg_list;
         while(current->next != NULL){
@@ -417,7 +422,7 @@ inter_code_page* translate_args(struct tree_node* root, arg_node* arg_list){
     else{
         arg_node* new_arg = (arg_node*)malloc(sizeof(arg_node));new_arg->next = NULL; new_arg->pre = NULL;
         new_arg->parameter.kind = FUNC_op;
-        sprintf(new_arg->parameter.name, "f%d", func_num);
+        sprintf(new_arg->parameter.name, "f%d", func_num);func_num++;
         inter_code_page* code1 = translate_exp(exp, &new_arg->parameter);
         arg_node* current = arg_list;
         while(current->next != NULL){
@@ -431,8 +436,23 @@ inter_code_page* translate_args(struct tree_node* root, arg_node* arg_list){
 }
 
 inter_code_page* translate_compst(struct tree_node* root){
-    struct tree_node* stmtlist = root->first_child->next_brother->next_brother;
-    return translate_stmtlist(stmtlist);
+    struct tree_node* deflist = root->first_child->next_brother;
+    struct tree_node* stmtlist = deflist->next_brother;
+    inter_code_page* code1 = translate_deflist(deflist);
+    inter_code_page* code2 = translate_stmtlist(stmtlist);
+    return intercode_ppmerge(code1,code2);
+}
+
+inter_code_page* translate_deflist(struct tree_node* root){
+    if(root->first_child == NULL)
+        return NULL;
+    else{
+        struct tree_node* declist = root->first_child->first_child->next_brother;
+        struct tree_node* deflist = root->first_child->next_brother;
+        inter_code_page* code1 = translate_declist(declist);
+        inter_code_page* code2 = translate_deflist(deflist);
+        return intercode_ppmerge(code1,code2);
+    }
 }
 
 inter_code_page* translate_stmtlist(struct tree_node* root){
@@ -468,4 +488,36 @@ inter_code_page* translate_func(struct tree_node* root){
     }
     return recode;
 }
+
+inter_code_page* translate_declist(struct tree_node* root){
+    struct tree_node* dec = root->first_child;
+    if(dec->next_brother == NULL){
+        return translate_dec(dec);
+    }
+    struct tree_node* declist = dec->next_brother->next_brother;
+    inter_code_page* code1 = translate_dec(dec);
+    inter_code_page* code2 = translate_declist(declist);
+    return intercode_ppmerge(code1, code2);
+}
+
+inter_code_page* translate_dec(struct tree_node* root){
+    struct tree_node* vardec = root->first_child;
+    if(vardec->next_brother == NULL)
+        return 0;           //未初始化值
+    struct tree_node* id = vardec->first_child;
+    if(strcmp(id->n_type, "ID") != 0){
+        printf("数组不能初始化\n");
+        assert(0);
+    }
+    struct tree_node* exp = vardec->next_brother->next_brother;
+    inter_code* code2 = (inter_code*)malloc(sizeof(inter_code));code2->next = NULL; code2->pre = NULL;
+    code2->kind = ASSIGN_ic;
+    code2->op2.left.kind = VARIABLE_op;
+    strcpy(code2->op2.left.name, id->n_value.a);
+    code2->op2.right.kind = VARIABLE_op;
+    sprintf(code2->op2.right.name, "e%d",name_num);
+    inter_code_page* code1 = translate_exp(exp, &code2->op2.right);
+    return intercode_p1merge(code1,code2);
+}
+
 #endif

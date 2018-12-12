@@ -23,7 +23,7 @@ int main(int argc, char** argv){
     #ifdef __LAB2_ENABLE
     if(ProFlag == true){
         analy_Program(root);
-        print_error2s();
+        ProFlag = print_error2s();
         #ifdef __DEBUG
         print_varlist();
         print_structlist();
@@ -33,15 +33,17 @@ int main(int argc, char** argv){
     #endif
 
     #ifdef __LAB3_ENABLE
-    FILE* w = fopen(argv[2], "w");
-    if (!w)
-    {
-        perror(argv[2]);
-        return 1;
+    if(ProFlag){
+        FILE* w = fopen(argv[2], "w");
+        if (!w)
+        {
+            perror(argv[2]);
+            return 1;
+        }
+        inter_code_page* icode = translate(root);
+        intercode_print(w, icode);
+        fclose(w);
     }
-    inter_code_page* icode = translate(root);
-    intercode_print(w, icode);
-    fclose(w);
     #endif
     return 0;
 }

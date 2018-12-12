@@ -1,0 +1,22 @@
+FUNCTION mul :
+PARAM q
+PARAM w
+e1 := w
+e2 := q
+e0 := e1 * e2
+RETURN e0
+FUNCTION main :
+e3 := #9
+i := e3
+e3 := #4
+a := e3
+f0 := i
+f1 := a
+ARG f0
+ARG f1
+e3 := CALL mul
+a := e3
+f2 := a
+WRITE f2
+e4 := #0
+RETURN e4

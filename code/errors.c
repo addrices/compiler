@@ -12,12 +12,15 @@ void error2_node_add(error2_node* current){
     }
 }
 
-void print_error2s(){
+bool print_error2s(){
     error2_node* point = error2_line;
+    if(point == NULL)
+        return true;
     while(point != NULL){
         printf("Error type %d at line %d: %s.\n",point->num, point->length, point->info);
         point = point->next;
     }
+    return false;
 }
 
 #endif
