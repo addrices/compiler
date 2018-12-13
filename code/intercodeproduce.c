@@ -79,8 +79,6 @@ inter_code_page* translate_exp(struct tree_node* root, operand* place){
             assert(0);
         struct tree_node* ID_node = root->first_child;
         var_node* var = var_node_search(ID_node->n_value.a);
-        if(var->kind != &INT_type)      //TODO:数组
-            assert(0);
         inter_code* code1 = (inter_code*)malloc(sizeof(inter_code)); code1->pre = NULL; code1->next = NULL;
         code1->kind = ASSIGN_ic;
         code1->op2.left = *place;
@@ -88,24 +86,27 @@ inter_code_page* translate_exp(struct tree_node* root, operand* place){
         sprintf(code1->op2.right.name,"%s",var->name);
         return intercode_1merge(code1);
     }
-    else if(state == 7){        //assign    a = b   TODO: now a must be a id
-        int a_state = getexp_state(root->first_child);      //第一项只能是id
-        if(a_state != 14)
-            assert(0);
-        inter_code* code2 = (inter_code*)malloc(sizeof(inter_code)); code2->pre = NULL; code2->next = NULL;
-        code2->op2.left.kind = VARIABLE_op;                 //code2 a = t1
-        strcpy(code2->op2.left.name, root->first_child->first_child->n_value.a);
-        code2->op2.right.kind = VARIABLE_op;
-        sprintf(code2->op2.right.name, "e%d",name_num);name_num++;
-        inter_code_page* code1 = translate_exp(root->first_child->next_brother->next_brother, &code2->op2.right); //处理exp2 
-        code2->kind = ASSIGN_ic;
-        inter_code_page* codef = intercode_p1merge(code1, code2);
+    else if(state == 7){        //assign 
+        //  a = b:
+        //  e1 = a code1
+        //  e2 = b code2
+        //         code3
+        inter_code* code3 = (inter_code*)malloc(sizeof(inter_code)); code3->pre = NULL; code3->next = NULL;
+        code3->op2.left.kind = VARIABLE_op;                 //code3 a = t1
+        sprintf(code3->op2.left.name, "e%d",name_num);name_num++;
+        inter_code_page* code1 = translate_exp(root->first_child, &code3->op2.left);
+        code3->op2.right.kind = VARIABLE_op;
+        sprintf(code3->op2.right.name, "e%d",name_num);name_num++;
+        inter_code_page* code2 = translate_exp(root->first_child->next_brother->next_brother, &code3->op2.right); //处理exp2 
+        code3->kind = ASSIGN_ic;
+        inter_code_page* codef = intercode_ppmerge(code1, code2);
+        codef = intercode_p1merge(codef,code3);
         if(place != NULL){
-            inter_code* code3 = (inter_code*)malloc(sizeof(inter_code)); code3->pre = NULL; code3->next = NULL;
-            code3->kind = ASSIGN_ic;
-            code3->op2.left = *place;
-            code3->op2.right = code2->op2.left;
-            return intercode_p1merge(codef,code3);
+            inter_code* code4 = (inter_code*)malloc(sizeof(inter_code)); code4->pre = NULL; code4->next = NULL;
+            code4->kind = ASSIGN_ic;
+            code4->op2.left = *place;
+            code4->op2.right = code4->op2.left;
+            return intercode_p1merge(codef,code4);
         }
         else 
             return codef;
@@ -212,6 +213,42 @@ inter_code_page* translate_exp(struct tree_node* root, operand* place){
             strcpy(call_code->op2.right.name, func->name);
             return intercode_p1merge(Pas,call_code);
         }
+    }
+    else if(state == 12){//数组
+        // a[b]
+        // e1 = b        code1
+        // e2 = e1 * 4   code2
+        // e3 = &a + e2  code3
+        // place = *e3   code4
+        struct tree_node* exp1 = root->first_child;
+        struct tree_node* exp2 = exp1->next_brother->next_brother;
+        if(strcmp(exp1->first_child->n_type, "ID") != 0){
+            printf("不支持高维数组\n");
+            assert(0);
+        }
+        struct tree_node* id = exp1->first_child;
+        var_node* var = var_node_search(id->n_value.a);
+        int size = var->kind->u.array.size;
+        
+        inter_code* code2 = (inter_code*)malloc(sizeof(inter_code)); code2->pre = NULL; code2->next = NULL;
+        code2->kind = MUL_ic;
+        sprintf(code2->op3.left.name, "e%d", name_num);name_num++;
+        sprintf(code2->op3.result.name, "e%d", name_num);name_num++;
+        strcpy(code2->op3.right.name, "#4");
+        inter_code_page* code1 = translate_exp(exp2, &code2->op3.left);
+
+        inter_code* code3 = (inter_code*)malloc(sizeof(inter_code)); code3->pre = NULL; code3->next = NULL;
+        code3->kind = ADD_ic;
+        sprintf(code3->op3.result.name, "e%d", name_num);name_num++;
+        sprintf(code3->op3.left.name, "&%s", id->n_value.a);
+        code3->op3.right = code2->op3.result;
+
+        inter_code* code4 = (inter_code*)malloc(sizeof(inter_code)); code4->pre = NULL; code4->next = NULL;
+        code4->kind = ASSIGN_ic;
+        code4->op2.left = *place;
+        code4->op2.right = code3->op3.result;
+
+        return intercode_p1merge(code1,code2);
     }
     assert(0);      //TODO:
 }
@@ -502,22 +539,34 @@ inter_code_page* translate_declist(struct tree_node* root){
 
 inter_code_page* translate_dec(struct tree_node* root){
     struct tree_node* vardec = root->first_child;
-    if(vardec->next_brother == NULL)
-        return 0;           //未初始化值
     struct tree_node* id = vardec->first_child;
     if(strcmp(id->n_type, "ID") != 0){
-        printf("数组不能初始化\n");
-        assert(0);
+        struct tree_node* array = id->first_child;//这时id中是vardec
+        if(strcmp(array->n_type, "ID") != 0){
+            printf("高维数组暂不支持\n");
+            assert(0);
+        }
+        //判断数组的类型。。这里默认是int。
+        var_node* var = var_node_search(array->n_value.a);
+        int size = var->kind->u.array.size;
+        inter_code* codea = (inter_code*)malloc(sizeof(inter_code));codea->next = NULL;codea->pre = NULL;
+        codea->kind = DEC_ic;
+        codea->op2.left.kind = VARIABLE_op;
+        strcpy(codea->op2.left.name, var->name);
+        codea->op2.right.kind = CONSTANT_op;
+        sprintf(codea->op2.right.name, "%d", size*4);
+        return intercode_1merge(codea);
     }
+    if(vardec->next_brother == NULL)
+        return 0;           //未初始化值
     struct tree_node* exp = vardec->next_brother->next_brother;
     inter_code* code2 = (inter_code*)malloc(sizeof(inter_code));code2->next = NULL; code2->pre = NULL;
     code2->kind = ASSIGN_ic;
     code2->op2.left.kind = VARIABLE_op;
     strcpy(code2->op2.left.name, id->n_value.a);
     code2->op2.right.kind = VARIABLE_op;
-    sprintf(code2->op2.right.name, "e%d",name_num);
+    sprintf(code2->op2.right.name, "e%d",name_num);name_num++;
     inter_code_page* code1 = translate_exp(exp, &code2->op2.right);
     return intercode_p1merge(code1,code2);
 }
-
 #endif

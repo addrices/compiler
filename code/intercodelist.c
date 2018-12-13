@@ -78,7 +78,7 @@ void intercode_print(FILE* f,inter_code_page* icode){
         else if(current->kind == RETURN_ic)
             fprintf(f, "RETURN %s\n", current->op1.src.name);
         else if(current->kind == DEC_ic)
-            assert(0);
+            fprintf(f, "DEC %s %s\n",current->op2.left.name, current->op2.right.name);
         else if(current->kind == ARG_ic)
             fprintf(f, "ARG %s\n", current->op1.src.name);
         else if(current->kind == CALL_ic)
