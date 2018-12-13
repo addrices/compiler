@@ -1,0 +1,29 @@
+FUNCTION muladd :
+PARAM q
+PARAM w
+PARAM e
+e1 := w * q
+e0 := e1 + e
+RETURN e0
+FUNCTION main :
+READ e6
+a := e6
+READ e8
+b := e8
+IF a > #0 GOTO 3
+GOTO 1
+LABEL 3 :
+IF b > #0 GOTO 0
+GOTO 1
+LABEL 0 :
+ARG a
+ARG b
+ARG a
+e14 := CALL muladd
+c := e14
+GOTO 2
+LABEL 1 :
+c := #17
+LABEL 2 :
+WRITE c
+RETURN #0

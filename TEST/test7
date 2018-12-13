@@ -1,5 +1,12 @@
 int main()
 {
-    float j;
-    10 + j;
-}
+    int a,b,c;
+    a = read();
+    b = read();
+    if(a > 5 || b > 5){
+        c = a + b;
+    }
+    c = 1;
+    write(c);
+    return 0;
+}       //3参数函数调用和ifelse测试

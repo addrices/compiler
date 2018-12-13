@@ -67,24 +67,28 @@ inter_code_page* translate_exp(struct tree_node* root, operand* place){
             assert(0);
         struct tree_node* INT_node = root->first_child;
         int value = INT_node->n_value.n_value_i;
-        inter_code* code1 = (inter_code*)malloc(sizeof(inter_code)); code1->pre = NULL; code1->next = NULL;
-        code1->kind = ASSIGN_ic;
-        code1->op2.left = *place;
-        code1->op2.right.kind = CONSTANT_op;
-        sprintf(code1->op2.right.name,"#%d",value);
-        return intercode_1merge(code1);
+        //inter_code* code1 = (inter_code*)malloc(sizeof(inter_code)); code1->pre = NULL; code1->next = NULL;
+        //code1->kind = ASSIGN_ic;
+        //code1->op2.left = *place;
+        //code1->op2.right.kind = CONSTANT_op;
+        //sprintf(code1->op2.right.name,"#%d",value);
+        //return intercode_1merge(code1);
+        sprintf(place->name, "#%d",value);
+        return NULL;
     }
     else if(state == 14){       //ID
         if(place == NULL)
             assert(0);
         struct tree_node* ID_node = root->first_child;
         var_node* var = var_node_search(ID_node->n_value.a);
-        inter_code* code1 = (inter_code*)malloc(sizeof(inter_code)); code1->pre = NULL; code1->next = NULL;
-        code1->kind = ASSIGN_ic;
-        code1->op2.left = *place;
-        code1->op2.right.kind = VARIABLE_op;
-        sprintf(code1->op2.right.name,"%s",var->name);
-        return intercode_1merge(code1);
+        //inter_code* code1 = (inter_code*)malloc(sizeof(inter_code)); code1->pre = NULL; code1->next = NULL;
+        //code1->kind = ASSIGN_ic;
+        //code1->op2.left = *place;
+        //code1->op2.right.kind = VARIABLE_op;
+        //sprintf(code1->op2.right.name,"%s",var->name);
+        //return intercode_1merge(code1);
+        strcpy(place->name,var->name);
+        return NULL;
     }
     else if(state == 7){        //assign 
         //  a = b:
@@ -219,7 +223,7 @@ inter_code_page* translate_exp(struct tree_node* root, operand* place){
         // e1 = b        code1
         // e2 = e1 * 4   code2
         // e3 = &a + e2  code3
-        // place = *e3   code4
+        // place -> *e3   
         struct tree_node* exp1 = root->first_child;
         struct tree_node* exp2 = exp1->next_brother->next_brother;
         if(strcmp(exp1->first_child->n_type, "ID") != 0){
@@ -243,12 +247,15 @@ inter_code_page* translate_exp(struct tree_node* root, operand* place){
         sprintf(code3->op3.left.name, "&%s", id->n_value.a);
         code3->op3.right = code2->op3.result;
 
-        inter_code* code4 = (inter_code*)malloc(sizeof(inter_code)); code4->pre = NULL; code4->next = NULL;
-        code4->kind = ASSIGN_ic;
-        code4->op2.left = *place;
-        code4->op2.right = code3->op3.result;
+        //inter_code* code4 = (inter_code*)malloc(sizeof(inter_code)); code4->pre = NULL; code4->next = NULL;
+        //code4->kind = ASSIGN_ic;
+        //code4->op2.left = *place;
+        //code4->op2.right = code3->op3.result;
+        sprintf(place->name, "*%s", code3->op3.result.name);
 
-        return intercode_p1merge(code1,code2);
+        inter_code_page* codef = intercode_p1merge(code1,code2);
+        codef = intercode_p1merge(codef,code3);
+        return codef;
     }
     assert(0);      //TODO:
 }

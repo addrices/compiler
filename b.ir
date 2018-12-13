@@ -1,25 +1,31 @@
 FUNCTION main :
-e0 := #9
-i := e0
-e1 := #0
-b := e1
+DEC a 40
+i := #2
+e3 := #0 * #4
+e4 := &a + e3
+*e4 := #1
+e8 := #1 * #4
+e9 := &a + e8
+*e9 := #1
 LABEL 0 :
-e2 := i
-e3 := #0
-IF e2 > e3 GOTO 1
+IF i < #10 GOTO 1
 GOTO 2
 LABEL 1 :
-e4 := b
-e6 := b
-e7 := i
-e5 := e6 + e7
-e4 := e5
-e8 := i
-e10 := i
-e11 := #1
-e9 := e10 - e11
-e8 := e9
+e15 := i * #4
+e16 := &a + e15
+e20 := i - #1
+e21 := e20 * #4
+e24 := &a + e21
+e25 := i - #2
+e26 := e25 * #4
+e29 := &a + e26
+e17 := *e24 + *e29
+*e16 := e17
+e31 := i + #1
+i := e31
 GOTO 0
 LABEL 2 :
-e12 := #0
-RETURN e12
+e35 := #9 * #4
+e36 := &a + e35
+WRITE *e36
+RETURN #0

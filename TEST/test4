@@ -1,8 +1,13 @@
-int func(int i){
-    return i;
+int Fibonacci(int q){
+    if(q <= 2)
+        return 1;
+    return Fibonacci(q-1) + Fibonacci(q-2);
 }
-int func(){
-    return 0;
-}
+
 int main(){
-}
+    int n;
+    n = read();
+    n = Fibonacci(n);
+    write(n);
+    return 0;
+}       //Fibonacci递归实现

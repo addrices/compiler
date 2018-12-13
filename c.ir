@@ -1,0 +1,18 @@
+FUNCTION main :
+a := #1
+b := #2
+c := #3
+d := #4
+e5 := a + b
+a := e5
+e9 := c - b
+b := e9
+e13 := d / b
+c := e13
+e17 := a * d
+d := e17
+WRITE a
+WRITE b
+WRITE c
+WRITE d
+RETURN #0

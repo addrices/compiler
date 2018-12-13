@@ -1,5 +1,11 @@
+int mul(int q, int w){
+    return w * q;
+}
+
 int main()
 {
-    int i;
-    i = 3.7;
-}
+    int i = 9, a = 4;
+    a = mul(i,a);
+    write(a);
+    return 0;
+}       //函数调用

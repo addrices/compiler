@@ -1,5 +1,18 @@
+int muladd(int q, int w,int e){
+    return w * q + e;
+}
+
 int main()
 {
-    int i;
-    10 = i;
-}
+    int a,b,c;
+    a = read();
+    b = read();
+    if(a > 0 && b > 0){
+        c = muladd(a,b,a);
+    }
+    else{
+        c = 17;
+    }
+    write(c);
+    return 0;
+}       //3参数函数调用和ifelse测试
