@@ -257,6 +257,9 @@ inter_code_page* translate_exp(struct tree_node* root, operand* place){
         codef = intercode_p1merge(codef,code3);
         return codef;
     }
+    else if(state == 17){
+        return translate_exp(root->first_child->next_brother, place);
+    }
     assert(0);      //TODO:
 }
 
@@ -370,6 +373,11 @@ inter_code_page* translate_stmt(struct tree_node* root){
 |   NOT exp |   exp RELOP exp
 */
 inter_code_page* translate_cond(struct tree_node* root, inter_code* label_true, inter_code* label_false){
+    if(strcmp(root->first_child->n_type, "LP") == 0){
+        struct tree_node* new_root = (struct tree_node*)malloc(sizeof(struct tree_node));
+        new_root->first_child = root->first_child->next_brother->first_child;
+        return translate_cond(new_root, label_true, label_false);
+    }
     struct tree_node* op = root->first_child->next_brother;
     if(strcmp(root->first_child->n_type, "NOT") == 0){
         return translate_cond(root->first_child, label_false, label_true);

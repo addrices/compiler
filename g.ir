@@ -3,15 +3,15 @@ READ e1
 a := e1
 READ e3
 b := e3
+c := #1
 IF a > #5 GOTO 0
 GOTO 2
 LABEL 2 :
 IF b > #5 GOTO 0
 GOTO 1
 LABEL 0 :
-e9 := a + b
-c := e9
+e11 := a + b
+c := e11
 LABEL 1 :
-c := #1
 WRITE c
 RETURN #0

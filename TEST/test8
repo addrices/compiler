@@ -1,5 +1,14 @@
-int main()
-{
-    float j = 1.7;
-    return j;
+int main(){
+    int i = 7, j = 8;
+    int a,b,c;
+    a = read();
+    b = read();
+    c = read();
+    if(a != 0 || (b >0 && c > 0)){
+        write(i+j);
+    }
+    else{
+        write(7);
+    }
+    return 0;
 }

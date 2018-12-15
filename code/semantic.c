@@ -754,8 +754,11 @@ type* analy_Exp(struct tree_node* root){
     else if(state == 15){
         return &INT_type;
     }
-    else{
+    else if(state == 16){
         return &FLOAT_type;
+    }
+    else{
+        return analy_Exp(root->first_child->next_brother);
     }
 }
 
@@ -842,6 +845,7 @@ int getexp_state(struct tree_node *root){
         else if(strcmp(root->first_child->next_brother->n_type, "DOT") == 0) state = 13;
         else if(strcmp(root->first_child->n_type, "MINUS") == 0) state = 8;
         else if(strcmp(root->first_child->n_type, "NOT") == 0) state = 9;
+        else if(strcmp(root->first_child->n_type, "LP") == 0) state = 17;
     }
     else if(strcmp(root->first_child->n_type, "ID") == 0) state = 14;
     else if(strcmp(root->first_child->n_type, "INT") == 0) state = 15;

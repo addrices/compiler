@@ -1,0 +1,25 @@
+FUNCTION main :
+i := #7
+j := #8
+READ e3
+a := e3
+READ e5
+b := e5
+READ e7
+c := e7
+IF a != #0 GOTO 0
+GOTO 3
+LABEL 3 :
+IF b > #0 GOTO 4
+GOTO 1
+LABEL 4 :
+IF c > #0 GOTO 0
+GOTO 1
+LABEL 0 :
+f0 := i + j
+WRITE f0
+GOTO 2
+LABEL 1 :
+WRITE #7
+LABEL 2 :
+RETURN #0
