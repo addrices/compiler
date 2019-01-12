@@ -7,7 +7,7 @@
 #define __LAB2_ENABLE
 //#define __DEBUG
 #define __LAB3_ENABLE
-
+#define __LAB4_ENABLE
 
 /*lab1 syntax.y*/
 union n_un{
@@ -34,6 +34,7 @@ void read_tree(struct tree_node* root_node,int i);
 #define __MAX_NAME_LENGTH 32
 #define __MAX_FUNC_PNUM 7
 #define __FUNC_HASH_NUM 29
+extern var_node* VAR_LIST[__FUNC_HASH_NUM];
 typedef struct type_ type;
 typedef struct func_node_ func_node;
 typedef struct struct_node_ struct_node;
@@ -150,3 +151,17 @@ inter_code_page* translate(struct tree_node* root);
 extern struct tree_node *root;
 void read_tree(struct tree_node* root_node,int i);
 extern bool ProFlag;
+
+#ifdef __LAB4_ENABLE
+struct block_page_{
+    int num;
+    inter_code* begin;
+    inter_code* end;
+    struct block_page_* next;
+};
+void assemblycode_print(FILE* f,inter_code_page* icode);
+void divide_block(inter_code_page* icode);
+typedef struct block_page_ block_page;
+block_page* block_head;
+void print_block();
+#endif

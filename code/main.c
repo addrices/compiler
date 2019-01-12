@@ -41,7 +41,15 @@ int main(int argc, char** argv){
             return 1;
         }
         inter_code_page* icode = translate(root);
+        intercode_print(w, icode); //TODO: delete
+    #ifndef __LAB4_ENABLE
         intercode_print(w, icode);
+    #endif
+    #ifdef __LAB4_ENABLE
+        divide_block(icode);
+        print_block();
+        //assemblycode_print(w, icode);
+    #endif
         fclose(w);
     }
     #endif
