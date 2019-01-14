@@ -10,7 +10,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/parser",
-            "args": ["${workspaceFolder}/TEST/test3", "${workspaceFolder}/a.ir"],
+            "args": ["${workspaceFolder}/TEST/test1", "${workspaceFolder}/a.ir"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

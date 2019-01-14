@@ -1,46 +1,6 @@
 #include "m.h"
 #ifdef __LAB4_ENABLE
-void divide_block(inter_code_page* icode){
-    inter_code* current = icode->begin;
-    int num = 0;
-    block_page* new_block = (block_page*)malloc(sizeof(block_page));
-    block_head = new_block;
-    block_page* current_block = new_block;
-    new_block->begin = icode->begin;
-    new_block->num = 0;
-    for(int i = 0;i < icode->num; i++){
-        if(current->kind == FUNC_ic || current->kind == LABEL_ic){
-            if(current_block->begin == current){
-                current = current->next;
-                continue;
-            }
-            block_page* new_block = (block_page*)malloc(sizeof(block_page));
-            new_block->begin = current;
-            new_block->num = i;
-            current_block->end = current->pre;
-            current_block->num = i - current_block->num;
-            current_block->next = new_block;
-            current_block = new_block;
-        }
-        else if(current->kind == GOTO_ic || current->kind == IF_ic || current->kind == RETURN_ic || current->kind == CALL_ic){
-            if(i == icode->num-1){
-                current_block->num = i - current_block->num + 1;
-                current_block->end = current;
-                current_block->next = NULL;
-                current = current->next;
-                continue;
-            }
-            block_page* new_block = (block_page*)malloc(sizeof(block_page));
-            new_block->begin = current->next;
-            new_block->num = i+1;
-            current_block->num = i+1 - current_block->num;
-            current_block->end = current;
-            current_block->next = new_block;
-            current_block = new_block;
-        }
-        current = current->next;
-    }
-}
+
 void print_block(){
     printf("\n");
     block_page* current = block_head;
@@ -51,11 +11,19 @@ void print_block(){
     printf("\n");
 }
 
+void assemblycode_print(FILE* f){
+    block_page* current_page = block_head;
+    while(current_page != NULL){
+        graph_node* vars = block_graph_color(current_page);
+        blockcode_print(f,current_page,vars);
+        //清理
+        current_page = current_page->next;
+    }
+}
 
-
-void assemblycode_print(FILE* f,inter_code_page* icode){
-    inter_code* current = icode->begin;
-    while(current != icode->end->next){
+void blockcode_print(FILE* f,block_page* block,graph_node* vars){
+    inter_code* current = block->begin;
+    for(int i = 0; i < block->num; i++){
         if(current->kind == LABEL_ic)
             fprintf(f, "label%s:\n", current->op1.src.name);
         else if(current->kind == FUNC_ic)

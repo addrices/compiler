@@ -34,7 +34,6 @@ void read_tree(struct tree_node* root_node,int i);
 #define __MAX_NAME_LENGTH 32
 #define __MAX_FUNC_PNUM 7
 #define __FUNC_HASH_NUM 29
-extern var_node* VAR_LIST[__FUNC_HASH_NUM];
 typedef struct type_ type;
 typedef struct func_node_ func_node;
 typedef struct struct_node_ struct_node;
@@ -43,6 +42,7 @@ typedef struct field_list_ field_list;
 typedef struct func_plist_ func_plist;
 typedef struct error2_node_ error2_node;
 typedef struct sfield_list_ sfield_list;
+extern var_node* VAR_LIST[__FUNC_HASH_NUM];
 
 struct error2_node_{
     int num;
@@ -153,15 +153,41 @@ void read_tree(struct tree_node* root_node,int i);
 extern bool ProFlag;
 
 #ifdef __LAB4_ENABLE
+struct func_var_{
+    char name[__MAX_NAME_LENGTH];
+    int sp_shift;
+    int size;
+    struct func_var_* next;
+};
+typedef struct func_var_ func_var;
 struct block_page_{
     int num;
     inter_code* begin;
     inter_code* end;
     struct block_page_* next;
 };
-void assemblycode_print(FILE* f,inter_code_page* icode);
-void divide_block(inter_code_page* icode);
 typedef struct block_page_ block_page;
+struct graph_node_{
+    char name[__MAX_NAME_LENGTH];
+    int graph_num;        //分配到的图中的编号
+    int neigh_num;        //块中邻居的数量
+    int reg_num;            //分配到的寄存器号
+    int if_new;             //内存中的是否是最新的
+    int if_reg;             //是否在寄存器中
+    struct graph_node_* next;
+};
+typedef struct graph_node_ graph_node;     //图染色算法中的每个图结点
+struct reg_info_{
+    graph_node* var;      //指向存放的变量  
+    bool valid;         //说明reg中存放的变量是否有效
+};
+typedef struct reg_info_ reg_info;
+reg_info regs_info[17];      //存放的是$8--$24这18个寄存器
+void update_newblock(FILE* f);
+graph_node* block_graph_color(block_page* block);
+void divide_block(inter_code_page* icode);
 block_page* block_head;
 void print_block();
+void infolist_init();
+int getreg(FILE* f, char* var_name,int type);
 #endif
