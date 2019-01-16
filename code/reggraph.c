@@ -10,20 +10,33 @@ void print_graph_neigh_array(int** array, int node_num);
 void print_graph_node(graph_node* graph_node_array,int node_num);
 void sort_graph_array(graph_node* graph_node_array, int node_num);
 void dye_color(graph_node* graph_node_array,int** graph_neigh_array,int node_num);
+void graphnode_to_funcvar(func_info* func,graph_node* graph_head,int node_num);
 
-graph_node* block_graph_color(block_page* block){
+graph_node* block_graph_color(func_info* func, block_page* block,int* num){
     graph_node* graph_head = (graph_node*)malloc(sizeof(graph_node));
     int node_num = count_graph_node(graph_head, block);                     //统计块中变量数，用链表储存。
     graph_node* graph_node_array = node_list2array(graph_head,node_num);      //将graph_node转移到数组中储存。
     int** graph_neigh_array = get_neigh_array(graph_node_array,block,node_num);      //将邻接关系变成一个二维数组。
-    //print_graph_node(graph_node_array,node_num);
     sort_graph_array(graph_node_array,node_num);
     dye_color(graph_node_array,graph_neigh_array,node_num);
-    //printf("after sort\n");
-    print_graph_node(graph_node_array,node_num);
-    printf("\n");
+    graphnode_to_funcvar(func, graph_node_array,node_num);
+    //print_graph_node(graph_node_array,node_num);
     //print_graph_neigh_array(graph_neigh_array,node_num);
+    *num = node_num; 
     return graph_node_array;
+}
+
+void graphnode_to_funcvar(func_info* func,graph_node* graph_head,int node_num){
+    for(int i = 0;i < node_num; i++){
+        func_var* current_v = func->var_list;
+        while(current_v != NULL){
+            if(strcmp(current_v->name, graph_head[i].name)==0){
+                graph_head[i].var = current_v;
+                break;
+            }
+            current_v = current_v->next;
+        }
+    }
 }
 
 int** get_neigh_array(graph_node* graph_head, block_page* block,int node_num){
@@ -38,9 +51,9 @@ int** get_neigh_array(graph_node* graph_head, block_page* block,int node_num){
     }
     inter_code* current = block->begin;
     for(int i = 0; i < block->num; i++){
-        if(current->kind == LABEL_ic ||current->kind == FUNC_ic ||current->kind == GOTO_ic|| current->kind == DEC_ic)
+        if(current->kind == LABEL_ic ||current->kind == FUNC_ic ||current->kind == GOTO_ic|| current->kind == DEC_ic || current->kind == CALL_ic )
             ;
-        else if(current->kind == ASSIGN_ic || current->kind == GETADDR_ic || current->kind == GETVALUE_ic || current->kind == ADDRASS_ic || current->kind == CALL_ic ){
+        else if(current->kind == ASSIGN_ic || current->kind == GETADDR_ic || current->kind == GETVALUE_ic || current->kind == ADDRASS_ic ){
             int n1 = get_graph_num(graph_head,current->op2.left.name, node_num);
             int n2 = get_graph_num(graph_head,current->op2.right.name,  node_num);
             if(n1 != -1 && n2 != -1){
@@ -124,7 +137,11 @@ int count_graph_node(graph_node* graph_head,block_page* block){
     for(int i = 0; i < block->num; i++){
         if(current->kind == LABEL_ic || current->kind == FUNC_ic || current->kind == GOTO_ic || current->kind == DEC_ic)
             ;
-        else if(current->kind == ASSIGN_ic || current->kind == GETADDR_ic || current->kind == GETVALUE_ic || current->kind == ADDRASS_ic || current->kind == CALL_ic ){
+        else if(current->kind == CALL_ic ){
+            if(graph_add(graph_head,current->op2.left.name))
+                node_num++;
+        }
+        else if(current->kind == ASSIGN_ic || current->kind == GETADDR_ic || current->kind == GETVALUE_ic || current->kind == ADDRASS_ic){
             if(graph_add(graph_head,current->op2.left.name))
                 node_num++;
             if(graph_add(graph_head,current->op2.right.name))
@@ -200,6 +217,8 @@ bool graph_add(graph_node* graph_head,char* n1){
     graph_node* new_node = (graph_node*)malloc(sizeof(graph_node));
     strcpy(new_node->name, n);
     new_node->graph_num = current->graph_num + 1;
+    new_node->if_new = true;
+    new_node->if_reg = false;
     new_node->next = NULL;
     new_node->neigh_num = 0;
     new_node->reg_num = 0;
@@ -264,50 +283,4 @@ void dye_color(graph_node* graph_node_array,int** graph_neigh_array,int node_num
 }
 
 
-void divide_block(inter_code_page* icode){
-    inter_code* current = icode->begin;
-    int num = 0;
-    block_page* new_block = (block_page*)malloc(sizeof(block_page));
-    block_head = new_block;
-    block_page* current_block = new_block;
-    new_block->begin = icode->begin;
-    new_block->num = 0;
-    for(int i = 0;i < icode->num; i++){
-        if(current->kind == FUNC_ic || current->kind == LABEL_ic){
-            if(current_block->begin == current){
-                current = current->next;
-                continue;
-            }
-            block_page* new_block = (block_page*)malloc(sizeof(block_page));
-            new_block->begin = current;
-            new_block->num = i;
-            current_block->end = current->pre;
-            current_block->num = i - current_block->num;
-            current_block->next = new_block;
-            current_block = new_block;
-        }
-        else if(current->kind == GOTO_ic || current->kind == IF_ic || current->kind == RETURN_ic || current->kind == CALL_ic){
-            if(i == icode->num-1){
-                current_block->num = i - current_block->num + 1;
-                current_block->end = current;
-                current_block->next = NULL;
-                current = current->next;
-                continue;
-            }
-            block_page* new_block = (block_page*)malloc(sizeof(block_page));
-            new_block->begin = current->next;
-            new_block->num = i+1;
-            current_block->num = i+1 - current_block->num;
-            current_block->end = current;
-            current_block->next = new_block;
-            current_block = new_block;
-        }
-        current = current->next;
-    }
-    /*current_block = block_head;
-    while(current_block!= NULL){
-        block_graph_color(current_block);
-        current_block = current_block->next;
-    }*/
-}
 #endif

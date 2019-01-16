@@ -1,5 +1,21 @@
-int main()
-{
-    int i[10];
-    i[1.5] = 10;
+int main(){
+    if(2 > 1){
+        write(1);
+    }
+    if(3 < 4){
+        write(2);
+    }
+    if(1 >= 1){
+        write(3);
+    }
+    if(1 <= 1){
+        write(4);
+    }
+    if(10 == 10){
+        write(5);
+    }
+    if(9 != 10){
+        write(6);
+    }
+    return 0;
 }

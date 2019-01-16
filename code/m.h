@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 #include <malloc.h>
@@ -147,6 +148,7 @@ inter_code_page* intercode_1pmerge(inter_code* forward, inter_code_page* behind)
 inter_code_page* intercode_11merge(inter_code* forward, inter_code* behind);
 inter_code_page* intercode_1merge(inter_code* forward);
 inter_code_page* translate(struct tree_node* root);
+void inter_code_adjust(inter_code_page* icode);
 #endif
 extern struct tree_node *root;
 void read_tree(struct tree_node* root_node,int i);
@@ -159,7 +161,7 @@ struct func_var_{
     int size;
     struct func_var_* next;
 };
-typedef struct func_var_ func_var;
+typedef struct func_var_ func_var;      //用于描述一个函数内的变量存放栈的位置。
 struct block_page_{
     int num;
     inter_code* begin;
@@ -167,6 +169,18 @@ struct block_page_{
     struct block_page_* next;
 };
 typedef struct block_page_ block_page;
+struct func_info_{
+    char name[__MAX_NAME_LENGTH];       //函数名
+    func_var* var_list;
+    struct func_info_* next_func;
+    int var_num;
+    block_page* block_list;
+    int size;
+    int code_num;                            //中间代码数量
+    inter_code* begin;
+    inter_code* end;
+};
+typedef struct func_info_ func_info;
 struct graph_node_{
     char name[__MAX_NAME_LENGTH];
     int graph_num;        //分配到的图中的编号
@@ -175,6 +189,7 @@ struct graph_node_{
     int if_new;             //内存中的是否是最新的
     int if_reg;             //是否在寄存器中
     struct graph_node_* next;
+    func_var* var;
 };
 typedef struct graph_node_ graph_node;     //图染色算法中的每个图结点
 struct reg_info_{
@@ -184,10 +199,11 @@ struct reg_info_{
 typedef struct reg_info_ reg_info;
 reg_info regs_info[17];      //存放的是$8--$24这18个寄存器
 void update_newblock(FILE* f);
-graph_node* block_graph_color(block_page* block);
-void divide_block(inter_code_page* icode);
-block_page* block_head;
+graph_node* block_graph_color(func_info* func, block_page* block,int* num);
+block_page* divide_block(func_info* icode);
 void print_block();
 void infolist_init();
-int getreg(FILE* f, char* var_name,int type);
+int getreg(FILE* f, char* var_name, int type, func_info* func,graph_node* vars,int node_num);
+func_info* divide_func(inter_code_page* icode);
+void assemble_print(FILE* f, func_info* func);
 #endif

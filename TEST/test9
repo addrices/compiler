@@ -1,9 +1,14 @@
-int func(int i)
+int func(int a,int b,int c,int d,int e,int f)
 {
-    return i;
+    int r;
+    r = a + b + c + d + e + f;
+    return r;
 }
 
 int main()
 {
-    func(1, 2);
+    int q;
+    q = func(1,2,3,4,5,6);
+    write(q);
+    return 0;
 }

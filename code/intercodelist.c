@@ -37,6 +37,18 @@ void intercodes_add(inter_codes* new_code){
     }
     return;
 }*/
+void inter_code_adjust(inter_code_page* icode){
+    inter_code* current = icode->begin;
+    while(current != NULL){
+        if(current->kind == ASSIGN_ic){
+            if(current->op2.left.name[0] == '*'){
+                current->kind = ADDRASS_ic;
+                strcpy(current->op2.left.name,&current->op2.left.name[1]);
+            }
+        }
+        current = current->next;
+    }
+}
 
 void intercode_print(FILE* f,inter_code_page* icode){
     printf("%d",icode->num);

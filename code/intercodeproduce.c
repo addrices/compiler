@@ -67,28 +67,28 @@ inter_code_page* translate_exp(struct tree_node* root, operand* place){
             assert(0);
         struct tree_node* INT_node = root->first_child;
         int value = INT_node->n_value.n_value_i;
-        inter_code* code1 = (inter_code*)malloc(sizeof(inter_code)); code1->pre = NULL; code1->next = NULL;
-        code1->kind = ASSIGN_ic;
-        code1->op2.left = *place;
-        code1->op2.right.kind = CONSTANT_op;
-        sprintf(code1->op2.right.name,"#%d",value);
-        return intercode_1merge(code1);
-        //sprintf(place->name, "#%d",value);
-        //return NULL;
+        //inter_code* code1 = (inter_code*)malloc(sizeof(inter_code)); code1->pre = NULL; code1->next = NULL;
+        //code1->kind = ASSIGN_ic;
+        //code1->op2.left = *place;
+        //code1->op2.right.kind = CONSTANT_op;
+        //sprintf(code1->op2.right.name,"#%d",value);
+        //return intercode_1merge(code1);
+        sprintf(place->name, "#%d",value);
+        return NULL;
     }
     else if(state == 14){       //ID
         if(place == NULL)
             assert(0);
         struct tree_node* ID_node = root->first_child;
         var_node* var = var_node_search(ID_node->n_value.a);
-        inter_code* code1 = (inter_code*)malloc(sizeof(inter_code)); code1->pre = NULL; code1->next = NULL;
-        code1->kind = ASSIGN_ic;
-        code1->op2.left = *place;
-        code1->op2.right.kind = VARIABLE_op;
-        sprintf(code1->op2.right.name,"%s",var->name);
-        return intercode_1merge(code1);
-        //strcpy(place->name,var->name);
-        //return NULL;
+        //inter_code* code1 = (inter_code*)malloc(sizeof(inter_code)); code1->pre = NULL; code1->next = NULL;
+        //code1->kind = ASSIGN_ic;
+        //code1->op2.left = *place;
+        //code1->op2.right.kind = VARIABLE_op;
+        //sprintf(code1->op2.right.name,"%s",var->name);
+        //return intercode_1merge(code1);
+        strcpy(place->name,var->name);
+        return NULL;
     }
     else if(state == 7){        //assign 
         //  a = b:
@@ -151,7 +151,6 @@ inter_code_page* translate_exp(struct tree_node* root, operand* place){
             assert(0);
         inter_code* label1 = new_label();
         inter_code* label2 = new_label();
-        place->kind = CONSTANT_op;
         inter_code* code1 = (inter_code*)malloc(sizeof(inter_code)); code1->pre = NULL; code1->next = NULL;
         code1->kind = ASSIGN_ic;
         code1->op2.left = *place;
@@ -222,7 +221,7 @@ inter_code_page* translate_exp(struct tree_node* root, operand* place){
         // a[b]
         // e1 = b        code1
         // e2 = e1 * 4   code2
-        // e3 = &a + e2  code3
+        // e3 = &a - e2  code3
         // place -> *e3   
         struct tree_node* exp1 = root->first_child;
         struct tree_node* exp2 = exp1->next_brother->next_brother;
@@ -233,7 +232,7 @@ inter_code_page* translate_exp(struct tree_node* root, operand* place){
         struct tree_node* id = exp1->first_child;
         var_node* var = var_node_search(id->n_value.a);
         int size = var->kind->u.array.size;
-        
+
         inter_code* code2 = (inter_code*)malloc(sizeof(inter_code)); code2->pre = NULL; code2->next = NULL;
         code2->kind = MUL_ic;
         sprintf(code2->op3.left.name, "e%d", name_num);name_num++;
@@ -242,7 +241,7 @@ inter_code_page* translate_exp(struct tree_node* root, operand* place){
         inter_code_page* code1 = translate_exp(exp2, &code2->op3.left);
 
         inter_code* code3 = (inter_code*)malloc(sizeof(inter_code)); code3->pre = NULL; code3->next = NULL;
-        code3->kind = ADD_ic;
+        code3->kind = SUB_ic;
         sprintf(code3->op3.result.name, "e%d", name_num);name_num++;
         sprintf(code3->op3.left.name, "&%s", id->n_value.a);
         code3->op3.right = code2->op3.result;
@@ -332,7 +331,6 @@ inter_code_page* translate_stmt(struct tree_node* root){
             inter_code_page* code2 = translate_stmt(stmt1);
             
             inter_code_page* codef = intercode_p1merge(code1, label1);
-            codef = intercode_p1merge(code1,label1);
             codef = intercode_ppmerge(codef,code2);
             return intercode_p1merge(codef,label2);
         }

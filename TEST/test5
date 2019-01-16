@@ -1,11 +1,13 @@
-int mul(int q, int w){
-    return w * q;
+int MUL_(int q, int w){
+    int c;
+    c = w*q;
+    return c;
 }
 
 int main()
 {
     int i = 9, a = 4;
-    a = mul(i,a);
+    a = MUL_(i,a);
     write(a);
     return 0;
 }       //函数调用
